@@ -460,6 +460,159 @@
   }
   .topic-refresh-btn:hover { border-color: var(--accent); color: var(--text); }
 
+  /* Token display */
+  .token-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 16px;
+    border-radius: 12px;
+    background: rgba(124,106,255,0.06);
+    border: 1px solid rgba(124,106,255,0.15);
+  }
+  .token-number {
+    font-size: 28px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7c6aff, #4ecdc4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    min-width: 28px;
+    text-align: center;
+  }
+  .token-number.bounce {
+    transform: scale(1.3);
+  }
+  .token-number.empty {
+    background: linear-gradient(135deg, #ff4757, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .token-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .token-label-main {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .token-empty-hint {
+    font-size: 10px;
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  /* Topic nav panel in sidebar */
+  .topic-nav-panel { padding: 8px; }
+  .topic-nav-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 8px 12px;
+  }
+  .topic-nav-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .topic-nav-subtitle {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .topic-nav-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    animation: fadeIn 0.3s ease;
+  }
+  .topic-nav-card:hover {
+    border-color: rgba(124,106,255,0.5);
+    transform: translateX(2px);
+    box-shadow: 0 2px 12px rgba(124,106,255,0.1);
+  }
+  .topic-nav-card.is-old {
+    opacity: 0.65;
+  }
+  .topic-nav-card.is-old:hover {
+    opacity: 0.85;
+  }
+  .topic-nav-card-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.5;
+    padding-right: 40px;
+  }
+  .topic-nav-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .topic-nav-card-speakers {
+    display: flex;
+    gap: 2px;
+    font-size: 12px;
+  }
+  .topic-nav-card-count {
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+  .topic-new-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, #7c6aff, #4ecdc4);
+    padding: 2px 7px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    animation: newPulse 2s ease-in-out infinite;
+  }
+  @keyframes newPulse {
+    0%, 100% { box-shadow: 0 0 4px rgba(124,106,255,0.3); }
+    50% { box-shadow: 0 0 12px rgba(124,106,255,0.6); }
+  }
+  .topic-nav-refresh {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .topic-nav-refresh:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .topic-nav-empty {
+    text-align: center;
+    padding: 30px 12px;
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
   /* Follow-up topics bar */
   .followup-bar {
     padding: 12px 20px;
@@ -695,9 +848,13 @@
       <p>选择话题，看大佬们真实观点碰撞</p>
     </div>
     <div class="sidebar-tabs">
+      <button class="sidebar-tab" onclick="switchTab('topics')" id="tabTopics">🎯 话题</button>
       <button class="sidebar-tab active" onclick="switchTab('groups')" id="tabGroups">💬 群组</button>
       <button class="sidebar-tab" onclick="switchTab('personas')" id="tabPersonas">👥 角色</button>
       <button class="sidebar-tab" onclick="switchTab('history')" id="tabHistory">📋 记录</button>
+    </div>
+    <div class="sidebar-panel" id="panelTopics">
+      <div class="topic-nav-panel" id="topicNavPanel"></div>
     </div>
     <div class="sidebar-panel active" id="panelGroups">
       <div class="group-list" id="groupListPanel"></div>
@@ -714,10 +871,21 @@
   <div class="chat-area">
     <div class="chat-header">
       <h3>🎙️ 圆桌讨论 <span class="online-count" id="onlineCount">6人在线</span></h3>
-      <div class="chat-actions">
-        <button onclick="summarizeChat()">📊 总结</button>
-        <button onclick="clearChat()">🗑 清空</button>
-        <button onclick="exportChat()">📋 导出</button>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="token-display" id="tokenDisplay">
+          <div>
+            <div class="token-number" id="tokenNumber">0</div>
+          </div>
+          <div class="token-label">
+            <div class="token-label-main">可探索话题</div>
+            <div id="tokenHint" style="font-size:9px;color:var(--text-dim);">点击话题开始讨论</div>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button onclick="summarizeChat()">📊 总结</button>
+          <button onclick="clearChat()">🗑 清空</button>
+          <button onclick="exportChat()">📋 导出</button>
+        </div>
       </div>
     </div>
 
@@ -1387,6 +1555,171 @@ const TAG_TO_QUESTION = {
 let _shownTopicTags = [];
 const TOPIC_DEDUP_WINDOW = 15;
 
+// ============================================================
+// 🎫 话题状态管理 — Token 系统 + 新/旧话题追踪
+// ============================================================
+const CLICKED_TOPICS_KEY = 'idea-groupchat-clicked-topics';
+let clickedTopicTags = new Set();
+
+// 缓存 buildTagIndex 结果（页面生命周期内 INSIGHTS_DB 不变）
+let _tagIndexCache = null;
+function getCachedTagIndex() {
+  if (!_tagIndexCache) _tagIndexCache = buildTagIndex();
+  return _tagIndexCache;
+}
+
+function loadClickedTopics() {
+  try {
+    const raw = localStorage.getItem(CLICKED_TOPICS_KEY);
+    if (raw) clickedTopicTags = new Set(JSON.parse(raw));
+  } catch(e) { clickedTopicTags = new Set(); }
+}
+
+function saveClickedTopics() {
+  localStorage.setItem(CLICKED_TOPICS_KEY, JSON.stringify([...clickedTopicTags]));
+}
+
+function isTopicNew(tag) {
+  return !clickedTopicTags.has(tag);
+}
+
+function getAllAvailableTags() {
+  const allTopics = findSharedTopics(2);
+  return new Set(allTopics.map(t => t.tag));
+}
+
+function getTokenCount() {
+  const allTags = getAllAvailableTags();
+  // Token = 总话题数 - 已触发且仍在话题池中的数量
+  let clickedInPool = 0;
+  clickedTopicTags.forEach(t => { if (allTags.has(t)) clickedInPool++; });
+  return allTags.size - clickedInPool;
+}
+
+function updateTokenDisplay() {
+  const count = getTokenCount();
+  const numEl = document.getElementById('tokenNumber');
+  const hintEl = document.getElementById('tokenHint');
+  if (!numEl) return;
+
+  numEl.textContent = count;
+  numEl.classList.toggle('empty', count === 0);
+
+  if (hintEl) {
+    if (count === 0) {
+      hintEl.innerHTML = '<span class="token-empty-hint">🔄 等待新内容更新</span>';
+    } else {
+      hintEl.textContent = '点击话题开始讨论';
+    }
+  }
+
+  // bounce 动画
+  numEl.classList.add('bounce');
+  setTimeout(() => numEl.classList.remove('bounce'), 350);
+}
+
+function markTopicClicked(tag) {
+  if (clickedTopicTags.has(tag)) return; // 已经标记过
+  clickedTopicTags.add(tag);
+  saveClickedTopics();
+  updateTokenDisplay();
+  // 如果话题导航面板可见，刷新它
+  if (document.getElementById('panelTopics')?.classList.contains('active')) {
+    renderTopicNav();
+  }
+}
+
+// ============================================================
+// 🧭 话题导航栏 — generateNavTopics + renderTopicNav
+// ============================================================
+let _navShownTags = []; // 导航栏的独立去重窗口
+
+function generateNavTopics(count = 5) {
+  const allTopics = findSharedTopics(3);
+  // 补充 2 人话题
+  if (allTopics.length < 20) {
+    const more = findSharedTopics(2);
+    const existing = new Set(allTopics.map(t => t.tag));
+    for (const t of more) {
+      if (!existing.has(t.tag)) allTopics.push(t);
+    }
+  }
+
+  // 分为新话题和旧话题
+  const newTopics = allTopics.filter(t => isTopicNew(t.tag));
+  const oldTopics = allTopics.filter(t => !isTopicNew(t.tag));
+
+  // 去重过滤（优先展示之前没展示过的）
+  let availableNew = newTopics.filter(t => !_navShownTags.includes(t.tag));
+  let availableOld = oldTopics.filter(t => !_navShownTags.includes(t.tag));
+
+  // 如果去重后不够用，重置去重窗口
+  if (availableNew.length + availableOld.length < count) {
+    _navShownTags = [];
+    availableNew = [...newTopics];
+    availableOld = [...oldTopics];
+  }
+
+  // 新话题优先，加随机性
+  const scoreAndPick = (list) => list.map(t => ({
+    topic: t,
+    score: t.speakerCount * 3 + t.totalInsights + Math.random() * 5
+  })).sort((a, b) => b.score - a.score);
+
+  const scoredNew = scoreAndPick(availableNew);
+  const scoredOld = scoreAndPick(availableOld);
+
+  // 先填新话题，不够再填旧话题
+  const result = [];
+  for (const s of scoredNew) {
+    if (result.length >= count) break;
+    result.push(s.topic);
+  }
+  for (const s of scoredOld) {
+    if (result.length >= count) break;
+    result.push(s.topic);
+  }
+
+  // 记录已展示
+  result.forEach(t => {
+    _navShownTags.push(t.tag);
+    if (_navShownTags.length > 30) _navShownTags.shift();
+  });
+
+  return result;
+}
+
+function renderTopicNav() {
+  const panel = document.getElementById('topicNavPanel');
+  if (!panel) return;
+
+  const tokenCount = getTokenCount();
+  const topics = generateNavTopics(5);
+
+  let html = '<div class="topic-nav-header"><div>';
+  html += '<div class="topic-nav-title">🎯 话题列表</div>';
+  html += '<div class="topic-nav-subtitle">' + (tokenCount > 0 ? '还有 ' + tokenCount + ' 个新话题待探索' : '所有话题已探索完毕') + '</div>';
+  html += '</div></div>';
+
+  if (topics.length === 0) {
+    html += '<div class="topic-nav-empty"><div style="font-size:28px;margin-bottom:8px;opacity:0.5;">🎙️</div>暂无话题<br>等待新内容更新</div>';
+  } else {
+    topics.forEach(t => {
+      const question = getTopicQuestion(t.tag);
+      const isNew = isTopicNew(t.tag);
+      html += '<div class="topic-nav-card' + (isNew ? '' : ' is-old') + '" onclick="startRoundtable(\'' + t.tag.replace(/'/g, "\\'") + '\')">';
+      if (isNew) html += '<span class="topic-new-badge">NEW</span>';
+      html += '<div class="topic-nav-card-title">' + question + '</div>';
+      html += '<div class="topic-nav-card-meta"><div class="topic-nav-card-speakers">' + t.speakers.map(id => (PERSONAS[id]?.emoji || '')).join('') + '</div>';
+      html += '<div class="topic-nav-card-count">' + t.speakerCount + '人 · ' + t.totalInsights + '条</div>';
+      html += '</div></div>';
+    });
+  }
+
+  html += '<button class="topic-nav-refresh" onclick="renderTopicNav()">🔄 换一批话题</button>';
+  panel.innerHTML = html;
+}
+
 function generateTopicCards(count = 5) {
   const allTopics = findSharedTopics(3); // 至少3位大佬有话说
   if (allTopics.length < count) {
@@ -1430,25 +1763,48 @@ function getTopicQuestion(tag) {
 
 // 为某个话题找到相关的后续话题（标签关联）
 function getFollowupTopics(currentTag, count = 3) {
-  const index = buildTagIndex();
+  // Token 为 0 时不推荐新话题
+  if (getTokenCount() === 0) return [];
+
+  const index = getCachedTagIndex();
   const currentPersonas = Object.keys(index[currentTag] || {});
   const allTopics = findSharedTopics(3);
 
   // 找标签不同但参与角色有重叠的话题
-  const candidates = allTopics.filter(t =>
+  let candidates = allTopics.filter(t =>
     t.tag !== currentTag &&
     !_shownTopicTags.includes(t.tag) &&
     t.speakers.some(s => currentPersonas.includes(s))
   );
 
+  // fallback：如果去重后候选为空，清空去重窗口重新过滤
+  if (candidates.length === 0) {
+    _shownTopicTags = [];
+    candidates = allTopics.filter(t =>
+      t.tag !== currentTag &&
+      t.speakers.some(s => currentPersonas.includes(s))
+    );
+  }
+
+  // 优先推荐新话题（未被点击过的）
+  const newCandidates = candidates.filter(t => isTopicNew(t.tag));
+  const oldCandidates = candidates.filter(t => !isTopicNew(t.tag));
+
   // 按关联度排序
-  const scored = candidates.map(t => ({
+  const scoreList = (list) => list.map(t => ({
     topic: t,
     score: t.speakers.filter(s => currentPersonas.includes(s)).length + Math.random() * 2
-  }));
-  scored.sort((a, b) => b.score - a.score);
+  })).sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, count).map(s => s.topic);
+  const scoredNew = scoreList(newCandidates);
+  const scoredOld = scoreList(oldCandidates);
+
+  // 新话题优先填充
+  const result = [];
+  for (const s of scoredNew) { if (result.length >= count) break; result.push(s.topic); }
+  for (const s of scoredOld) { if (result.length >= count) break; result.push(s.topic); }
+
+  return result;
 }
 
 // ============================================================
@@ -2014,12 +2370,15 @@ function showToast(msg) {
 
 // --- Tab 切换 ---
 function switchTab(tab) {
+  document.getElementById('tabTopics').classList.toggle('active', tab === 'topics');
   document.getElementById('tabGroups').classList.toggle('active', tab === 'groups');
   document.getElementById('tabPersonas').classList.toggle('active', tab === 'personas');
   document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+  document.getElementById('panelTopics').classList.toggle('active', tab === 'topics');
   document.getElementById('panelGroups').classList.toggle('active', tab === 'groups');
   document.getElementById('panelPersonas').classList.toggle('active', tab === 'personas');
   document.getElementById('panelHistory').classList.toggle('active', tab === 'history');
+  if (tab === 'topics') renderTopicNav();
   if (tab === 'groups') renderGroupList();
   if (tab === 'history') renderHistory();
 }
@@ -2196,8 +2555,11 @@ async function startRoundtable(tag) {
   isProcessing = true;
   document.getElementById('sendBtn').disabled = true;
 
+  // 标记该话题为已点击，更新 Token
+  markTopicClicked(tag);
+
   const question = getTopicQuestion(tag);
-  const index = buildTagIndex();
+  const index = getCachedTagIndex();
   const topicData = index[tag] || {};
 
   // 创建新 session
@@ -2430,6 +2792,7 @@ document.getElementById('userInput').addEventListener('input', function() {
 // --- 初始化 ---
 loadSessions();
 loadGroups();
+loadClickedTopics();
 initPersonaList();
 
 // 迁移旧 session（没有 groupId 的）到默认群
@@ -2444,6 +2807,8 @@ if (!currentGroupId && groups.length > 0) {
 
 renderGroupList();
 renderHistory();
+updateTokenDisplay();
+renderTopicNav();
 
 // Restore last session or show welcome
 if (sessions.length > 0 && !currentSessionId) {
