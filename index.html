@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💡 Idea 群聊室 — 与6位AI产品大佬讨论你的想法</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --sidebar: #111118;
+    --chat-bg: #0f0f16;
+    --input-bg: #1a1a28;
+    --card: #16161f;
+    --border: #252538;
+    --text: #e8e6f0;
+    --text-dim: #8a87a0;
+    --accent: #7c6aff;
+    --pg-color: #ffd93d;
+    --a16z-color: #7c6aff;
+    --semi-color: #4ecdc4;
+    --pl-color: #ff6b9d;
+    --boring-color: #6bcb77;
+    --jenny-color: #ee6c4d;
+    --user-color: #60a5fa;
+    --danger: #ff4757;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 280px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 20px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-header p {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Persona list */
+  .persona-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .persona-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .persona-card:hover {
+    border-color: rgba(124,106,255,0.4);
+    transform: translateX(2px);
+  }
+  .persona-card.active {
+    border-color: var(--accent);
+    background: rgba(124,106,255,0.08);
+  }
+  .persona-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .persona-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .persona-name {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .persona-role {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 1px;
+  }
+  .persona-toggle {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: #333;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .persona-toggle.on { background: var(--accent); }
+  .persona-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.3s;
+  }
+  .persona-toggle.on::after { transform: translateX(16px); }
+  .persona-bio {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .persona-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .persona-tags span {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--chat-bg);
+  }
+
+  /* Chat header */
+  .chat-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15,15,22,0.95);
+    backdrop-filter: blur(10px);
+  }
+  .chat-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .online-count {
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(124,106,255,0.12);
+    padding: 3px 10px;
+    border-radius: 10px;
+  }
+  .chat-actions { display: flex; gap: 8px; }
+  .chat-actions button {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chat-actions button:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    scroll-behavior: smooth;
+  }
+  .message {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    animation: fadeIn 0.4s ease;
+    max-width: 85%;
+  }
+  .message.user {
+    flex-direction: row-reverse;
+    margin-left: auto;
+    max-width: 70%;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .msg-content {
+    flex: 1;
+  }
+  .msg-name {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .msg-name .time {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+  .msg-bubble {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    border-top-left-radius: 4px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: #d5d3e6;
+  }
+  .message.user .msg-bubble {
+    background: rgba(124,106,255,0.15);
+    border-color: rgba(124,106,255,0.3);
+    border-radius: 14px;
+    border-top-right-radius: 4px;
+    color: var(--text);
+  }
+  .msg-bubble strong { color: var(--text); }
+  .msg-bubble em { color: var(--accent); font-style: normal; }
+  .msg-source { margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06); font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+  .msg-source a { color: var(--text-dim); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; transition: color 0.2s; }
+  .msg-source a:hover { color: var(--accent); }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px;
+    align-items: center;
+  }
+  .typing-indicator .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    animation: typingBounce 1.4s ease-in-out infinite;
+  }
+  .typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+  .typing-name {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 6px;
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(15,15,22,0.95);
+    backdrop-filter: blur(10px);
+  }
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .input-row textarea {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    padding: 12px 16px;
+    resize: none;
+    outline: none;
+    min-height: 48px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  .input-row textarea:focus {
+    border-color: var(--accent);
+  }
+  .input-row textarea::placeholder { color: #555; }
+  .send-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--accent);
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { transform: scale(1.05); background: #6b59e8; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Welcome */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+  }
+  .welcome h2 {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #e8e6f0, #7c6aff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .welcome p {
+    color: var(--text-dim);
+    font-size: 14px;
+    max-width: 480px;
+    line-height: 1.8;
+    margin-bottom: 24px;
+  }
+  .example-prompts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 500px;
+  }
+  .example-prompt {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+  }
+  .example-prompt:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    transform: translateY(-1px);
+  }
+
+  /* Topic cards */
+  .topic-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 600px;
+  }
+  .topic-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+  .topic-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #4ecdc4, #ff6b9d);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .topic-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(124,106,255,0.12);
+  }
+  .topic-card:hover::before { opacity: 1; }
+  .topic-card-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .topic-card-num { width:28px; height:28px; border-radius:8px; background:rgba(124,106,255,0.12); color:var(--accent); font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .topic-card-title { font-size:14px; font-weight:700; color:var(--text); line-height:1.5; }
+  .topic-card-meta { display:flex; align-items:center; gap:12px; margin-top:6px; }
+  .topic-card-speakers { display:flex; gap:3px; font-size:14px; }
+  .topic-card-count { font-size:10px; color:var(--text-dim); }
+  .topic-refresh-btn {
+    margin-top: 16px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    padding: 8px 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .topic-refresh-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Follow-up topics bar */
+  .followup-bar {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(15,15,22,0.95);
+    display: none;
+  }
+  .followup-bar.show { display: block; }
+  .followup-label { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; font-weight: 600; }
+  .followup-topics { display: flex; gap: 8px; flex-wrap: wrap; }
+  .followup-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .followup-chip:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Sidebar tabs */
+  .sidebar-tabs { display:flex; border-bottom:1px solid var(--border); }
+  .sidebar-tab { flex:1; padding:10px 8px; font-size:12px; font-weight:600; color:var(--text-dim); background:none; border:none; cursor:pointer; transition:all 0.2s; text-align:center; border-bottom:2px solid transparent; }
+  .sidebar-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .sidebar-tab:hover { color:var(--text); }
+  .sidebar-panel { flex:1; overflow-y:auto; display:none; }
+  .sidebar-panel.active { display:block; }
+
+  /* Group list panel */
+  .group-list { padding:8px; }
+  .group-new-btn { width:100%; padding:10px; background:var(--accent); border:none; border-radius:10px; color:white; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:8px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .group-new-btn:hover { background:#6b59e8; }
+  .group-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:6px; cursor:pointer; transition:all 0.2s; position:relative; }
+  .group-item:hover { border-color:rgba(124,106,255,0.4); }
+  .group-item.active { border-color:var(--accent); background:rgba(124,106,255,0.08); }
+  .group-item-header { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .group-item-emoji { font-size:18px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; background:rgba(124,106,255,0.1); border-radius:8px; flex-shrink:0; }
+  .group-item-info { flex:1; min-width:0; }
+  .group-item-title { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .group-item-meta { font-size:10px; color:var(--text-dim); display:flex; gap:8px; margin-top:2px; }
+  .group-item-members { display:flex; gap:2px; margin-top:4px; }
+  .group-item-members span { font-size:12px; }
+  .group-item-actions { position:absolute; top:8px; right:8px; display:flex; gap:2px; opacity:0; transition:opacity 0.2s; }
+  .group-item:hover .group-item-actions { opacity:1; }
+  .group-item-actions button { background:none; border:none; color:var(--text-dim); font-size:13px; cursor:pointer; padding:2px 4px; border-radius:4px; }
+  .group-item-actions button:hover { color:var(--accent); background:rgba(124,106,255,0.1); }
+  .group-item-actions button.danger:hover { color:var(--danger); background:rgba(255,71,87,0.1); }
+  .group-empty { text-align:center; padding:40px 16px; color:var(--text-dim); font-size:13px; line-height:1.6; }
+
+  /* Session list inside group */
+  .session-list { padding:8px; }
+  .session-back-btn { display:flex; align-items:center; gap:6px; padding:8px 10px; font-size:12px; font-weight:600; color:var(--text-dim); background:none; border:none; cursor:pointer; margin-bottom:8px; border-radius:8px; width:100%; transition:all 0.2s; }
+  .session-back-btn:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+  .session-group-title { font-size:14px; font-weight:700; color:var(--text); padding:4px 10px 12px; display:flex; align-items:center; gap:6px; }
+  .session-group-members { display:flex; gap:4px; flex-wrap:wrap; padding:0 10px 10px; }
+  .session-group-members .member-tag { font-size:10px; padding:2px 8px; border-radius:8px; background:rgba(255,255,255,0.06); color:var(--text-dim); }
+  .session-actions-bar { display:flex; gap:6px; padding:0 8px 8px; }
+  .session-actions-bar button { flex:1; padding:8px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text-dim); font-size:11px; font-weight:600; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:4px; }
+  .session-actions-bar button:hover { border-color:var(--accent); color:var(--text); }
+  .session-actions-bar button.primary { background:var(--accent); border-color:var(--accent); color:white; }
+  .session-actions-bar button.primary:hover { background:#6b59e8; }
+
+  /* History panel */
+  .history-panel { padding:8px; }
+  .history-new-btn { width:100%; padding:10px; background:var(--accent); border:none; border-radius:10px; color:white; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:8px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .history-new-btn:hover { background:#6b59e8; }
+  .history-item { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:6px; cursor:pointer; transition:all 0.2s; position:relative; }
+  .history-item:hover { border-color:rgba(124,106,255,0.4); }
+  .history-item.active { border-color:var(--accent); background:rgba(124,106,255,0.08); }
+  .history-item-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:24px; }
+  .history-item-meta { font-size:10px; color:var(--text-dim); display:flex; gap:8px; }
+  .history-item-preview { font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .history-delete { position:absolute; top:10px; right:10px; background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer; padding:2px 4px; border-radius:4px; opacity:0; transition:all 0.2s; }
+  .history-item:hover .history-delete { opacity:1; }
+  .history-delete:hover { color:var(--danger); background:rgba(255,71,87,0.1); }
+  .history-empty { text-align:center; padding:40px 16px; color:var(--text-dim); font-size:13px; line-height:1.6; }
+
+  /* Modal */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:300; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--sidebar); border:1px solid var(--border); border-radius:16px; padding:24px; width:400px; max-width:90vw; max-height:80vh; overflow-y:auto; animation:fadeIn 0.2s ease; }
+  .modal h3 { font-size:16px; font-weight:700; margin-bottom:16px; }
+  .modal label { font-size:12px; font-weight:600; color:var(--text-dim); display:block; margin-bottom:6px; margin-top:12px; }
+  .modal input[type="text"] { width:100%; padding:10px 12px; background:var(--input-bg); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; }
+  .modal input[type="text"]:focus { border-color:var(--accent); }
+  .modal .emoji-picker { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .modal .emoji-pick { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:18px; border-radius:8px; border:1px solid var(--border); background:var(--card); cursor:pointer; transition:all 0.2s; }
+  .modal .emoji-pick:hover, .modal .emoji-pick.selected { border-color:var(--accent); background:rgba(124,106,255,0.15); }
+  .modal .persona-checks { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .modal .persona-check { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:8px; background:var(--card); border:1px solid var(--border); cursor:pointer; font-size:12px; color:var(--text-dim); transition:all 0.2s; }
+  .modal .persona-check:hover { border-color:rgba(124,106,255,0.4); }
+  .modal .persona-check.checked { border-color:var(--accent); background:rgba(124,106,255,0.12); color:var(--text); }
+  .modal .modal-btns { display:flex; gap:8px; margin-top:20px; }
+  .modal .modal-btns button { flex:1; padding:10px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.2s; }
+  .modal .btn-cancel { background:var(--card); color:var(--text-dim); border:1px solid var(--border) !important; }
+  .modal .btn-cancel:hover { color:var(--text); }
+  .modal .btn-primary { background:var(--accent); color:white; }
+  .modal .btn-primary:hover { background:#6b59e8; }
+
+  /* Summary modal */
+  .summary-content { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; font-size:13px; line-height:1.8; color:#d5d3e6; max-height:400px; overflow-y:auto; white-space:pre-wrap; }
+  .summary-content strong { color:var(--text); }
+  .summary-actions { display:flex; gap:8px; margin-top:12px; }
+  .summary-actions button { flex:1; padding:8px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--border); transition:all 0.2s; }
+  .summary-copy { background:var(--accent); color:white; border-color:var(--accent) !important; }
+  .summary-copy:hover { background:#6b59e8; }
+  .summary-export { background:var(--card); color:var(--text-dim); }
+  .summary-export:hover { color:var(--text); border-color:var(--accent) !important; }
+
+  /* Mention bar (selected @tags above input) */
+  .mention-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .mention-bar:empty { display:none; }
+  .mention-chip { display:flex; align-items:center; gap:4px; background:rgba(124,106,255,0.15); border:1px solid rgba(124,106,255,0.3); border-radius:14px; padding:3px 10px 3px 8px; font-size:12px; color:var(--accent); font-weight:600; animation:fadeIn 0.2s ease; }
+  .mention-chip .rm-mention { background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; padding:0 0 0 2px; opacity:0.6; }
+  .mention-chip .rm-mention:hover { opacity:1; }
+
+  /* @mention dropdown */
+  .mention-dropdown { display:none; position:absolute; bottom:100%; left:0; margin-bottom:6px; background:var(--sidebar); border:1px solid var(--border); border-radius:12px; padding:6px; min-width:240px; max-height:280px; overflow-y:auto; z-index:200; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+  .mention-dropdown.show { display:block; animation:fadeIn 0.2s ease; }
+  .mention-dropdown-header { font-size:10px; color:var(--text-dim); padding:4px 8px 6px; text-transform:uppercase; letter-spacing:1px; font-weight:700; }
+  .mention-option { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; transition:background 0.15s; }
+  .mention-option:hover { background:rgba(124,106,255,0.12); }
+  .mention-option .m-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .mention-option .m-name { font-size:13px; font-weight:600; }
+  .mention-option .m-role { font-size:10px; color:var(--text-dim); }
+  .mention-option .m-check { font-size:14px; color:var(--accent); flex-shrink:0; }
+
+  /* Toast */
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--card); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:10px; font-size:13px; z-index:999; transition:transform 0.3s ease; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .message { max-width: 95%; }
+    .message.user { max-width: 85%; }
+  }
+
+  /* Persona detail panel */
+  .persona-detail {
+    display: none;
+    position: fixed;
+    top: 0; right: 0;
+    width: 360px;
+    height: 100vh;
+    background: var(--sidebar);
+    border-left: 1px solid var(--border);
+    z-index: 100;
+    overflow-y: auto;
+    padding: 24px;
+    animation: slideIn 0.3s ease;
+  }
+  .persona-detail.show { display: block; }
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  .persona-detail .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .persona-detail h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .persona-detail .role {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .persona-detail .section-title {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 16px 0 8px;
+  }
+  .persona-detail .detail-text {
+    font-size: 13px;
+    color: #c5c3d4;
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .persona-detail .quote-box {
+    background: rgba(124,106,255,0.08);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    font-size: 12px;
+    font-style: italic;
+    color: #b8b5cc;
+    margin: 8px 0;
+    border-radius: 0 8px 8px 0;
+    line-height: 1.6;
+  }
+  .persona-detail .article-list {
+    list-style: none;
+  }
+  .persona-detail .article-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(45,45,68,0.3);
+    font-size: 12px;
+  }
+  .persona-detail .article-list a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .persona-detail .article-list a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>🎙️ 大佬圆桌</h2>
+      <p>选择话题，看大佬们真实观点碰撞</p>
+    </div>
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" onclick="switchTab('groups')" id="tabGroups">💬 群组</button>
+      <button class="sidebar-tab" onclick="switchTab('personas')" id="tabPersonas">👥 角色</button>
+      <button class="sidebar-tab" onclick="switchTab('history')" id="tabHistory">📋 记录</button>
+    </div>
+    <div class="sidebar-panel active" id="panelGroups">
+      <div class="group-list" id="groupListPanel"></div>
+    </div>
+    <div class="sidebar-panel" id="panelPersonas">
+      <div class="persona-list" id="personaList"></div>
+    </div>
+    <div class="sidebar-panel" id="panelHistory">
+      <div class="history-panel" id="historyPanel"></div>
+    </div>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-area">
+    <div class="chat-header">
+      <h3>🎙️ 圆桌讨论 <span class="online-count" id="onlineCount">6人在线</span></h3>
+      <div class="chat-actions">
+        <button onclick="summarizeChat()">📊 总结</button>
+        <button onclick="clearChat()">🗑 清空</button>
+        <button onclick="exportChat()">📋 导出</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <h2>💡 把你的 Idea 扔进来</h2>
+        <p>6位AI产品领域的顶级思想家会从各自的角度分析你的想法。<br>输入 <strong style="color:var(--accent)">@</strong> 可以指定某位大佬单独回答你。</p>
+        <div class="example-prompts">
+          <div class="example-prompt" onclick="useExample(this)">💡 我想做一个AI驱动的法律合同审核工具，自动识别风险条款并给出修改建议</div>
+          <div class="example-prompt" onclick="useExample(this)">💡 我想做一个帮餐厅老板自动处理外卖平台差评的AI工具</div>
+          <div class="example-prompt" onclick="useExample(this)">💡 我想做一个"AI老师"，根据孩子的作业错题自动生成针对性练习</div>
+          <div class="example-prompt" onclick="useExample(this)">💡 我想用AI做一个个人财务助手，自动分析银行流水并给出省钱建议</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="followup-bar" id="followupBar">
+      <div class="followup-label">💡 继续探讨相关话题</div>
+      <div class="followup-topics" id="followupTopics"></div>
+    </div>
+    <div class="input-area" id="inputArea">
+      <div class="input-hint">💡 输入想法让所有大佬讨论，或输入 <strong style="color:var(--accent)">@</strong> 指定某位大佬回答</div>
+      <div class="mention-bar" id="mentionBar"></div>
+      <div class="input-row">
+        <textarea id="userInput" placeholder="描述你的想法... 输入 @ 指定大佬回答，点击 → 发送" rows="1" onkeydown="handleKeydown(event)" oninput="handleInput(event)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">→</button>
+        <div class="mention-dropdown" id="mentionDropdown">
+          <div class="mention-dropdown-header">@ 选择大佬</div>
+          <div id="mentionOptions"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Persona Detail Panel -->
+<div class="persona-detail" id="personaDetail">
+  <button class="close-btn" onclick="closeDetail()">✕</button>
+  <div id="detailContent"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Group Modal -->
+<div class="modal-overlay" id="groupModal">
+  <div class="modal">
+    <h3 id="groupModalTitle">✨ 新建讨论群</h3>
+    <label>群名称</label>
+    <input type="text" id="groupNameInput" placeholder="例如：AI教育产品探讨" maxlength="30">
+    <label>群图标</label>
+    <div class="emoji-picker" id="emojiPicker"></div>
+    <label>参与角色</label>
+    <div class="persona-checks" id="personaChecks"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeGroupModal()">取消</button>
+      <button class="btn-primary" onclick="saveGroup()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Modal -->
+<div class="modal-overlay" id="summaryModal">
+  <div class="modal" style="width:520px;">
+    <h3>📊 对话总结</h3>
+    <div class="summary-content" id="summaryContent"></div>
+    <div class="summary-actions">
+      <button class="summary-copy" onclick="copySummary()">📋 复制</button>
+      <button class="summary-export" onclick="exportGroupChat()">💾 导出文件</button>
+      <button class="btn-cancel" onclick="closeSummaryModal()" style="border:1px solid var(--border);">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 🧠 大佬虚拟人格数据库
+// ============================================================
+const PERSONAS = {
+  pg: {
+    id: 'pg',
+    name: 'Paul Graham',
+    emoji: '✍️',
+    color: '#ffd93d',
+    role: 'YC创始人 · 创业教父',
+    shortBio: '硅谷最具影响力的创业导师，写过200+篇经典博客文章',
+    avatar_bg: 'rgba(255,217,61,0.15)',
+    active: true,
+
+    // 核心思维模型
+    mentalModels: [
+      '做不可规模化的事（Do Things That Don\'t Scale）',
+      '追随问题而非追随金钱（Follow problems, not money）',
+      '创业想法是矢量，不是标量（Ideas are vectors）',
+      '超线性回报（Superlinear Returns）',
+      '品牌时代 vs 黄金时代（Brand Age vs Golden Age）',
+      '创始人模式 vs 经理人模式（Founder Mode vs Manager Mode）',
+      '好奇心是最强驱动力'
+    ],
+
+    // 写作/说话风格
+    style: {
+      tone: '直白、口语化、反直觉',
+      structure: '先破除常见误区，再用案例佐证，最后归纳方法论',
+      habits: [
+        '喜欢用生动的隐喻（"像老式汽车的手摇启动器"）',
+        '大量引用真实创业案例（Airbnb, Stripe, Facebook）',
+        '经常说"这听起来很疯狂，但..."',
+        '会直接反驳"常识"',
+        '段落很短，每段一个观点'
+      ],
+      catchphrases: [
+        'Do things that don\'t scale.',
+        'Live in the future, then build what\'s missing.',
+        'Make something people want.',
+        'Be relentlessly resourceful.',
+        'Startups take off because founders make them take off.'
+      ]
+    },
+
+    // 核心信念体系
+    beliefs: {
+      on_ideas: '不要试图"想"创业点子，去寻找你自己遇到的问题。最好的想法是"狭窄而深"的，不是"宽泛而浅"的。',
+      on_execution: '早期创始人必须亲自做不可规模化的脏活。亲自招募用户，亲自提供极致服务。',
+      on_growth: '增长源于复利。不要因为初期数字小就气馁，保持每周7-10%的增长率。',
+      on_hiring: '"雇好人然后放手"这个建议对创始人是有害的。Founder Mode比Manager Mode更有效。',
+      on_market: '当技术消除产品差异后，竞争变量从性能转向品牌。追随有趣的问题，而不是追逐风口。',
+      on_work: '伟大的工作由好奇心驱动。如果有些事让你感兴趣到让别人觉得无聊的程度，那就是你该做的。'
+    },
+
+    // 评价想法时的思考框架
+    evaluationFramework: [
+      '这个想法解决的是创始人自己遇到的问题吗？',
+      '有没有一小群人迫切需要这个东西？（深度 vs 广度）',
+      '创始人能不能先用不可规模化的方式验证？',
+      '这个领域是否存在超线性回报的可能？',
+      '有没有现有的"sitcom startup idea"的嫌疑？（听起来合理但没人真正需要）',
+      '是在追随问题还是追逐风口？'
+    ],
+
+    // 文章库（用于参考）
+    articles: [
+      { title: 'The Brand Age', url: 'https://paulgraham.com/brandage.html', year: 2026 },
+      { title: 'Do Things That Don\'t Scale', url: 'https://paulgraham.com/ds.html', year: 2013 },
+      { title: 'Founder Mode', url: 'https://paulgraham.com/foundermode.html', year: 2024 },
+      { title: 'How to Get Startup Ideas', url: 'https://paulgraham.com/startupideas.html', year: 2012 },
+      { title: 'Superlinear Returns', url: 'https://paulgraham.com/superlinear.html', year: 2023 },
+      { title: 'How to Do Great Work', url: 'https://paulgraham.com/greatwork.html', year: 2023 },
+      { title: 'Good Writing', url: 'https://paulgraham.com/goodwriting.html' },
+      { title: 'What to Do', url: 'https://paulgraham.com/todo.html' }
+    ],
+
+    // 生成回复的prompt模板
+    responsePattern: '以创业导师的身份分析这个idea。先问"这解决的是谁的什么问题？"然后用案例类比，指出可能的陷阱，最后给出具体的"下一步该做什么"的建议。语气直接、犀利但温暖。'
+  },
+
+  a16z: {
+    id: 'a16z',
+    name: 'a16z 研究团队',
+    emoji: '⚡',
+    color: '#7c6aff',
+    role: '顶级风投 · 趋势洞察',
+    shortBio: 'Andreessen Horowitz，管理数百亿美元的硅谷顶级VC',
+    avatar_bg: 'rgba(124,106,255,0.15)',
+    active: true,
+
+    mentalModels: [
+      '软件吞噬世界（Software is eating the world）',
+      'AI不是独立赛道，是所有软件的新标准',
+      '消费级AI应用的数据驱动分析',
+      '从AI目的地到AI空气（AI everywhere）',
+      'AI Native时代已经到来',
+      '垂直AI是最大创业机会'
+    ],
+
+    style: {
+      tone: '权威、数据驱动、前瞻性',
+      structure: '先展示数据趋势，再提出投资论点，最后预测未来走向',
+      habits: [
+        '大量使用图表和排名数据',
+        '喜欢说"我们的数据显示..."',
+        '经常引用具体的MAU/DAU/周活数字',
+        '会对比不同时间维度的变化',
+        '关注商业模式和变现路径',
+        '会从投资组合的角度给例子'
+      ],
+      catchphrases: [
+        'Software is eating the world.',
+        'It\'s time to build.',
+        '我们的数据显示一个清晰的趋势...',
+        'AI is not a category, it\'s a capability.',
+        '这个赛道的TAM（总可寻址市场）是...'
+      ]
+    },
+
+    beliefs: {
+      on_market: 'AI正在从"目的地"变成"空气"。独立的AI产品可能不是终局——AI是所有软件的新标配。',
+      on_competition: 'ChatGPT 9亿周活称王，但CapCut/Notion等传统应用靠AI功能逆袭。说明AI不一定要从零开始。',
+      on_agents: 'Agent代理式AI崛起，从"帮你做"变成"替你做"。但可靠性和成本仍是瓶颈。',
+      on_verticals: '垂直领域AI应用是最大创业机会。通用聊天机器人市场已被巨头锁定。',
+      on_pricing: '编码工具（Claude Code等）是增长最快品类，半年达10亿美元ARR。',
+      on_global: '人均AI采用率最高的国家不是美国而是新加坡。全球视野很重要。'
+    },
+
+    evaluationFramework: [
+      '这个市场的TAM有多大？增长率如何？',
+      '是AI-native还是AI-enabled？',
+      '是做独立AI产品，还是给现有产品加AI？',
+      '竞争格局：巨头会不会做这个？',
+      '单位经济模型：CAC/LTV/毛利率？',
+      '是否有网络效应或数据飞轮？'
+    ],
+
+    articles: [
+      { title: 'Top 100 Gen AI Consumer Apps (6th Ed.)', url: 'https://a16z.com/100-gen-ai-apps/', year: 2026 },
+      { title: 'Big Ideas 2026', url: 'https://a16z.com/newsletter/big-ideas-2026-part-3/', year: 2025 }
+    ],
+
+    responsePattern: '以风投合伙人的身份分析这个idea。先评估市场规模和竞争格局，引用具体数据，然后从投资的角度指出这个idea的强项和弱项，最后给出"我们会关注什么指标"的建议。'
+  },
+
+  semi: {
+    id: 'semi',
+    name: 'SemiAnalysis',
+    emoji: '🔬',
+    color: '#4ecdc4',
+    role: '技术深度 · 半导体+AI分析',
+    shortBio: 'Dylan Patel领衔的技术深度分析团队，专注AI基础设施',
+    avatar_bg: 'rgba(78,205,196,0.15)',
+    active: true,
+
+    mentalModels: [
+      '推理成本下降 = 新产品品类出现',
+      '衡量指标从"每百万token成本"转向"任务完成成本"',
+      '技术栈决定了产品天花板',
+      '基准测试不可靠，真实场景才是检验标准',
+      'GPU/TPU的选择决定了推理经济性',
+      '基础设施的约束是产品创新的边界'
+    ],
+
+    style: {
+      tone: '技术硬核、数据密集、客观冷静',
+      structure: '先铺设技术背景，然后深入对比测试数据，最后推导产品影响',
+      habits: [
+        '大量使用具体的性能数据和成本数字',
+        '喜欢做模型之间的横向对比评测',
+        '会从芯片架构角度分析产品可行性',
+        '经常质疑厂商的基准测试数据',
+        '会计算具体的推理成本（每请求/每任务）',
+        '关注供应链和硬件约束'
+      ],
+      catchphrases: [
+        '让我们看看实际的数字...',
+        '基准测试说的和真实场景完全是两回事',
+        '推理成本决定了这个产品能不能活',
+        '从技术栈的角度来看...',
+        '这个架构的瓶颈在于...'
+      ]
+    },
+
+    beliefs: {
+      on_cost: '推理成本2年降了10倍以上。之前"太贵而不可行"的AI功能正在变得可行。',
+      on_models: 'GPT-5.5和Opus 4.7各有优劣：前者擅长精确推理和Bug修复，后者擅长意图推断和开放式规划。',
+      on_benchmarks: '厂商选择性发布有利数据，SWE-bench等存在数据污染。不要盲信基准测试。',
+      on_infra: '芯片架构（HBM4, CPO）决定了下一代AI产品的成本和能力边界。',
+      on_workflow: '实际工作流中，工程师倾向于用Claude做规划/搭脚手架，用Codex修Bug和做细节。',
+      on_pricing: 'Opus 4.7新分词器变相涨价35%。关注"任务完成成本"而不是"token单价"。'
+    },
+
+    evaluationFramework: [
+      '这个产品的推理成本是多少？用户能承受吗？',
+      '需要什么级别的模型能力？当前模型够用吗？',
+      '延迟要求是什么？实时还是异步？',
+      '数据处理规模有多大？',
+      '技术栈的选择是否合理？有没有更经济的方案？',
+      '基础设施约束会不会限制规模化？'
+    ],
+
+    articles: [
+      { title: 'The Coding Assistant Breakdown', url: 'https://newsletter.semianalysis.com/p/the-coding-assistant-breakdown-more', year: 2026 },
+      { title: 'ISSCC 2026: HBM4 & CPO', url: 'https://newsletter.semianalysis.com/p/isscc-2026-nvidia-and-broadcom-cpo', year: 2026 },
+      { title: 'GTC 2026 — Inference Kingdom', url: 'https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands', year: 2026 }
+    ],
+
+    responsePattern: '以技术分析师的身份评估这个idea。先计算推理成本和技术可行性，然后分析需要什么级别的模型能力，最后指出技术瓶颈和可能的解决方案。语气专业、数据导向。'
+  },
+
+  pl: {
+    id: 'pl',
+    name: 'Product Lessons',
+    emoji: '📖',
+    color: '#ff6b9d',
+    role: '产品复盘 · 案例分析',
+    shortBio: 'Linda Zhang运营，15000+订阅者的产品经理成长社区',
+    avatar_bg: 'rgba(255,107,157,0.15)',
+    active: true,
+
+    mentalModels: [
+      '杀手级产品是有主见的（Opinionated Products）',
+      '增加阻力有时反而让产品更好',
+      '大型redesign通常会失败',
+      '独立企业可以击败VC创业公司',
+      '用户上瘾机制的正反两面',
+      '失败的产品教训比成功更有价值'
+    ],
+
+    style: {
+      tone: '叙事性强、务实、案例驱动',
+      structure: '先讲一个产品的故事，然后拆解背后的决策逻辑，最后提炼可复用的教训',
+      habits: [
+        '喜欢做"成功vs失败"的对比分析',
+        '总是问"用户真正在乎的是什么？"',
+        '会拆解具体的产品功能决策',
+        '关注产品团队的组织和文化',
+        '喜欢用"如果当时这么做会怎样"的反事实推理'
+      ],
+      catchphrases: [
+        '让我用一个真实的案例来说明...',
+        '这让我想起了Stripe/TikTok/亚马逊的经历...',
+        '用户不会告诉你他们想要什么，但他们的行为会',
+        '最好的产品通常一开始看起来像个玩具',
+        '不要问用户想要什么，观察他们做什么'
+      ]
+    },
+
+    beliefs: {
+      on_design: '大型redesign通常失败，因为它们是为了内部政治而不是用户需求。渐进式迭代才是正道。',
+      on_competition: '独立企业可以击败VC创业公司。盲目做大可能导致灭绝。',
+      on_addiction: 'TikTok的上瘾机制是精心设计的产品架构，不是偶然。理解机制才能复用或防范。',
+      on_opinion: '杀手级产品是有主见的。有时候故意增加阻力（如Superhuman的限制邀请）反而能打造更好的体验。',
+      on_failure: 'Amazon Fire Phone失败而Alexa成功，因为前者是追逐市场而后者是解决问题。'
+    },
+
+    evaluationFramework: [
+      '有没有类似的产品案例可以参考（成功或失败的）？',
+      '用户的核心行为是什么？有没有上瘾循环？',
+      '产品有没有自己的"主见"？还是在迎合所有人？',
+      '增长策略是什么？是靠功能驱动还是靠营销驱动？',
+      '这是在做一个大型redesign还是渐进式创新？',
+      '团队结构是否匹配产品策略？'
+    ],
+
+    articles: [
+      { title: '产品复盘案例合集', url: 'https://www.productlessons.xyz/', year: 2026 }
+    ],
+
+    responsePattern: '以产品顾问的身份分析这个idea。先找一个类似的产品案例做对比，然后拆解用户行为和产品决策的关键点，最后给出具体的产品建议。'
+  },
+
+  boring: {
+    id: 'boring',
+    name: 'BoringCashCow',
+    emoji: '💰',
+    color: '#6bcb77',
+    role: '微创新 · 闷声发财',
+    shortBio: '专注发现"无聊但赚钱"的互联网生意，反VC叙事',
+    avatar_bg: 'rgba(107,203,119,0.15)',
+    active: true,
+
+    mentalModels: [
+      '用新技术解决旧问题 > 用新技术追逐新风口',
+      '无聊的生意 = 稳定的需求 + 低竞争注意力',
+      '做小做精做利润，不要做大做亏做估值',
+      '需求永远不会消失的品类才是好生意',
+      'Bootstrap优于VC融资',
+      '被聪明人忽视的领域才有机会'
+    ],
+
+    style: {
+      tone: '务实、接地气、反精英主义',
+      structure: '先描述一个"无聊"的生意模型，然后揭示其隐藏的盈利能力，最后总结普适规律',
+      habits: [
+        '喜欢说"这听起来很无聊，但它每月赚X万美元"',
+        '经常挑战"独角兽叙事"',
+        '关注利润而不是融资额',
+        '会计算具体的月收入和利润率',
+        '喜欢用反直觉的案例打脸VC思维'
+      ],
+      catchphrases: [
+        '这个生意无聊吗？是的。赚钱吗？非常。',
+        '你不需要改变世界，你需要一个能每月付你账单的生意',
+        'VC不投的领域，可能恰恰是最好的创业方向',
+        '需求永远不会消失，你只需要用更好的方式满足它',
+        '利润 > 估值。现金流 > 增长率。'
+      ]
+    },
+
+    beliefs: {
+      on_business: '最好的生意往往是用新技术解决旧问题。AI驱动的PDF处理工具可能比通用聊天机器人更赚钱。',
+      on_market: 'PDF生成器、截图API、发票工具、链接主页——这些"古老"的需求背后藏着巨大商机。',
+      on_competition: '被VC和聪明人忽视的领域竞争最少。无聊 = 低竞争注意力。',
+      on_funding: 'Bootstrap创业优于VC融资。保持小而美，专注利润，不要被增长焦虑绑架。',
+      on_ai: '不要被"颠覆"的叙事绑架。AI最大的商业价值是让无聊的事情变得更自动化。'
+    },
+
+    evaluationFramework: [
+      '这个需求是永久性的还是风口性的？',
+      '能不能Bootstrap起步，不需要融资？',
+      '利润率是多少？多久能盈利？',
+      '有没有更无聊但更赚钱的角度？',
+      '竞争对手是VC公司还是Bootstrap公司？',
+      '能不能一个人或小团队做？'
+    ],
+
+    articles: [
+      { title: 'Boring Cash Cow Showcase', url: 'https://boringcashcow.com/showcase', year: 2026 }
+    ],
+
+    responsePattern: '以反VC创业导师的身份分析这个idea。先问"这能Bootstrap起来吗？"然后把这个idea转化为一个更无聊但更赚钱的版本，最后给出如何靠利润而不是融资活下去的建议。'
+  },
+
+  jenny: {
+    id: 'jenny',
+    name: 'Jenny Xiao',
+    emoji: '🧭',
+    color: '#ee6c4d',
+    role: 'Leonis Capital · AI投资分析',
+    shortBio: 'Leonis Capital合伙人，华人视角的AI深度投资分析',
+    avatar_bg: 'rgba(238,108,77,0.15)',
+    active: true,
+
+    mentalModels: [
+      '引擎 vs 汽车（模型是引擎，产品是汽车）',
+      'AI阈值效应：Demo≠产品，魔法≠商业',
+      '护城河从"技术"转向"垂直深度+客户信任"',
+      '行动系统 = 知识工作的泰勒主义',
+      '安全≠治理（Safety≠Governance）',
+      '叙事滞后现实12-24个月',
+      '判断力是AI时代最稀缺的资源',
+      'MCP时代护城河在"混乱"中'
+    ],
+
+    style: {
+      tone: '犀利、理性、具有批判性',
+      structure: '现象分析→逆向思考→经济学原理→战略建议',
+      habits: [
+        '大量使用汽车/引擎/工厂的隐喻',
+        '喜欢做历史类比（泰勒主义、API时代）',
+        '总是质疑"市场共识"',
+        '会从投资的角度计算价值捕获',
+        '关注"谁最终赚了钱"而不是"谁获得了关注"',
+        '经常引用具体的ARR和估值数字'
+      ],
+      catchphrases: [
+        'The engine market is consolidating. The car market is wide open.',
+        'Demo magic ≠ Product market fit',
+        '护城河在"混乱"之中（The moat is in the mess）',
+        '叙事总是滞后于现实12-24个月',
+        'Winners reintroduce constraints without killing the magic.',
+        '判断力是新时代的稀缺资源'
+      ]
+    },
+
+    beliefs: {
+      on_moats: 'Claude Code泄露证明：底层架构已成公开知识。护城河从"专有架构"转移到"垂直深度"——领域数据、监管知识、客户信任、工作流嵌入。',
+      on_demos: 'OpenClaw/AutoGPT的阈值效应：华丽的Demo先于价值捕获。真正赚钱的是那些"驯化魔法为可靠性"的产品。',
+      on_pricing: '从按token/按席位收费转向按结果收费。AI创业公司需要承担风险、按成功付费才能进入企业市场。',
+      on_labor: 'AI正在将认知判断力从人脑提取到系统。知识工作面临泰勒主义级别的重塑。',
+      on_mcp: 'MCP时代，水平连接器会被商品化，只有垂直领域（医疗HIPAA、金融KYC）的深度服务能存活。',
+      on_valuation: 'OpenAI不值3000亿。传统SaaS估值方法不适用于AI公司。引入替代风险因子D才能合理估值。'
+    },
+
+    evaluationFramework: [
+      '这是"引擎"生意还是"汽车"生意？',
+      '护城河在哪里？是技术还是垂直深度？',
+      '会不会被大模型公司原生功能取代？（替代风险D）',
+      '定价模型：按量还是按结果？',
+      '这是在追叙事还是解决真问题？',
+      '治理和合规是机会还是障碍？',
+      '是否存在"自我淘汰悖论"？'
+    ],
+
+    articles: [
+      { title: 'Inside the Claude Code Leak', url: 'https://leonisnewsletter.substack.com/p/inside-the-claude-code-leak', year: 2026 },
+      { title: 'From Stopwatches to Systems of Action', url: 'https://leonisnewsletter.substack.com/p/from-stopwatches-to-systems-of-action', year: 2026 },
+      { title: 'Our Predictions for 2026', url: 'https://leonisnewsletter.substack.com/p/our-predictions-for-2026', year: 2026 },
+      { title: 'OpenClaw and the AI Threshold Effect', url: 'https://leonisnewsletter.substack.com/p/openclaw-aka-clawdbot-and-the-ai', year: 2026 },
+      { title: 'MCPs: Value Creation, Capture, Destruction', url: 'https://leonisnewsletter.substack.com/p/mcps-value-creation-capture-and-destructionlesso', year: 2025 },
+      { title: 'Zero or Hero: AI Company Valuation', url: 'https://leonisnewsletter.substack.com/p/zero-or-hero-a-technical-framework', year: 2025 },
+      { title: 'Leonis AI100 Report 2025', url: 'https://leonisnewsletter.substack.com/p/leonis-capital-ai100-report-2025', year: 2025 },
+      { title: 'DeepSeek Technical & Strategic Analysis', url: 'https://leonisnewsletter.substack.com/p/deepseek-a-technical-and-strategic', year: 2025 }
+    ],
+
+    responsePattern: '以AI投资分析师的身份分析这个idea。先用"引擎vs汽车"的框架判断这是什么类型的机会，然后评估替代风险和护城河，最后从定价和价值捕获的角度给出建议。语气犀利、数据驱动。'
+  }
+};
+
+// ============================================================
+// 🎭 纯正观点数据库 — 基于大佬们真实公开内容
+// ============================================================
+
+const INSIGHTS_DB = {
+  pg: [
+    { id:'pg_dttds_01', thesis:'创业公司不会自然起飞，创始人必须手动推动', body:'创业公司起飞是因为创始人让它们起飞——就像早期汽车需要手摇曲柄启动一样。最常见的不可规模化行为是手动招募用户。不能坐等用户上门，必须主动出击。Stripe的做法就是直接拿过用户的电脑当场装好，而不是问"要不要试试beta版"。', tags:['创业验证','用户获取','早期阶段'], source:{title:'Do Things That Don\'t Scale',url:'https://paulgraham.com/ds.html',year:2013}},
+    { id:'pg_dttds_02', thesis:'用不可规模化的方式让早期用户惊喜', body:'规模还小的时候，应该竭尽所能让早期用户感到惊喜。Wufoo坚持给每位新用户手写感谢信。**我从未见过哪家创业公司因为过于努力让早期用户满意而误入歧途。**工程师思维的创始人往往忽略客户服务，认为不"性感"，但这恰恰是大公司做不到的竞争优势。', tags:['用户体验','早期阶段','服务'], source:{title:'Do Things That Don\'t Scale',url:'https://paulgraham.com/ds.html',year:2013}},
+    { id:'pg_dttds_03', thesis:'先手动做，再自动化——Wizard of Oz法', body:'用户数量很少时，可以在后台手动处理那些你计划未来自动化的功能。当手动组件在用户看来像是软件功能时，这就是Wizard of Oz法。好处是让你更快发布，而且当你最终写代码自动化时，你已经完全知道该怎么构建了。', tags:['MVP','产品开发','验证'], source:{title:'Do Things That Don\'t Scale',url:'https://paulgraham.com/ds.html',year:2013}},
+    { id:'pg_dttds_04', thesis:'聚焦细分市场——像控制火种一样点燃增长', body:'创业初期应该像点火一样先限制范围让火烧旺。Facebook最初只开放给哈佛学生，这种高度针对性让学生觉得这是"属于他们的地盘"，迅速形成社区。先在一个窄小市场做到极致，再向外扩张。', tags:['用户增长','市场策略','社区'], source:{title:'Do Things That Don\'t Scale',url:'https://paulgraham.com/ds.html',year:2013}},
+    { id:'pg_dttds_05', thesis:'创业想法是矢量，不是标量', body:'创业想法不应被视为标量（只看做什么产品），而应被视为向量——包含"你要构建什么"和"你将做什么不可规模化的事来启动它"两个分量。初期不可规模化的努力会塑造公司的永久DNA。', tags:['创业方法论','战略'], source:{title:'Do Things That Don\'t Scale',url:'https://paulgraham.com/ds.html',year:2013}},
+    { id:'pg_ideas_01', thesis:'不要试图"想"创业点子，去发现你自己遇到的问题', body:'获得创业点子的方法不是试图凭空构思，而是寻找问题，尤其是你自己遇到的问题。最好的创业点子有三个共同点：**创始人自己需要、自己能构建、且很少有人意识到其价值。**如果不解决真实问题，这是创业失败最常见的原因。', tags:['创业想法','问题发现','需求验证'], source:{title:'How to Get Startup Ideas',url:'https://paulgraham.com/startupideas.html',year:2012}},
+    { id:'pg_ideas_02', thesis:'好想法是"井"不是"坑"——深度优于广度', body:'好的创业点子在需求分布上呈"井"状：用户群体小但需求极度强烈。"做出来的"点子通常呈"宽且浅"——像宠物社交网络，看似很多人可能感兴趣，但没人迫切需要。成功公司都始于一个小而深的市场，然后从中找到扩张路径。', tags:['市场策略','需求分析','创业想法'], source:{title:'How to Get Startup Ideas',url:'https://paulgraham.com/startupideas.html',year:2012}},
+    { id:'pg_ideas_03', thesis:'Live in the future, then build what\'s missing', body:'获得好点子的最佳方法是让自己成为那种"有点子的人"。身处某个快速变化领域的最前沿，当你发现有什么东西缺失时，那对你来说显而易见，但对别人来说却不是。**生活在未来，然后构建缺失的东西。**', tags:['创新','前瞻性','创业想法'], source:{title:'How to Get Startup Ideas',url:'https://paulgraham.com/startupideas.html',year:2012}},
+    { id:'pg_ideas_04', thesis:'克服"繁琐盲区"——别人嫌烦的地方藏着金矿', body:'大多数人因为害怕"繁琐"而忽略好点子。Stripe解决支付问题就是个例子——处理支付集成极其麻烦，但正因为这种麻烦吓退了竞争者，才留下了巨大机会。**Schlep blindness prevents people from seeing ideas that involve tedious work.**', tags:['竞争','创业想法','支付'], source:{title:'How to Get Startup Ideas',url:'https://paulgraham.com/startupideas.html',year:2012}},
+    { id:'pg_ideas_05', thesis:'警惕"情景喜剧式创业"——听起来合理但没人真正需要', body:'有些创业想法就像情景喜剧编剧为了剧情"编造"的——听起来合理，但实际上没人真正需要。判断标准：你认识的人里有没有人今天就在手动做这件事？最好的创业想法往往显而易见到让你觉得"这么明显的东西怎么没人做"。', tags:['需求验证','创业陷阱'], source:{title:'How to Get Startup Ideas',url:'https://paulgraham.com/startupideas.html',year:2012}},
+    { id:'pg_super_01', thesis:'表现与回报是超线性关系——赢家获得指数级更多', body:'老师说"一分耕耘一分收获"，但这很少是真的。如果你的产品只有竞争对手的一半好，你不会得到一半的客户——**你会没有客户，然后倒闭**。超线性回报来自两个源头：指数增长和阈值效应。理解这一点对有野心的人至关重要。', tags:['增长','竞争','回报'], source:{title:'Superlinear Returns',url:'https://paulgraham.com/superlinear.html',year:2023}},
+    { id:'pg_super_02', thesis:'寻找具有复利效应的工作——关注增长率而非绝对数值', body:'工作可以通过两种方式复利：直接复利（建立基础设施、品牌）或通过学习复利（当下可能看似失败，但你在变强）。如果你没有在学习，你就可能不在通往超线性回报的路径上。**当有疑问时，跟随你的好奇心。它从不撒谎。**', tags:['学习','增长','职业发展'], source:{title:'Superlinear Returns',url:'https://paulgraham.com/superlinear.html',year:2023}},
+    { id:'pg_founder_01', thesis:'Founder Mode vs Manager Mode——创始人不应过早放权', body:'"雇佣优秀的人并给他们空间"这个建议对创始人往往适得其反。实际上有两种运营方式：创始人模式和管理者模式。在创始人模式下，CEO不应仅通过直接汇报来与公司互动，"越级会议"应该是常态。Brian Chesky通过学习乔布斯经营苹果的方式，让Airbnb拥有了硅谷最好的自由现金流利润率之一。', tags:['管理','创始人','组织'], source:{title:'Founder Mode',url:'https://paulgraham.com/foundermode.html',year:2024}},
+    { id:'pg_great_01', thesis:'做伟大工作的四步法：选择领域→到达前沿→发现缺口→探索缺口', body:'从画家到物理学家，几乎所有做过伟大工作的人都遵循这个模式。兴趣是引擎也是舵——如果不深感兴趣，你就无法足够努力。**最大的奖赏是发现一个新的分形芽：你注意到知识表面的裂缝，撬开它，里面有一个完整的世界。**', tags:['方法论','创新','工作'], source:{title:'How to Do Great Work',url:'https://paulgraham.com/greatwork.html',year:2023}},
+    { id:'pg_great_02', thesis:'与其制定长期计划，不如"顶风而行"——保持好奇心', body:'在每个阶段做最有趣且为未来提供最多选择的事。好奇心是最可靠的向导，它知道什么值得你关注。伟大的事物几乎总是通过迭代版本演变而来——先做最小可行版本，然后根据反馈不断进化。**不要试图在任何一个版本中塞入太多新东西。**', tags:['产品开发','迭代','好奇心'], source:{title:'How to Do Great Work',url:'https://paulgraham.com/greatwork.html',year:2023}},
+    { id:'pg_growth_01', thesis:'创业公司 = 增长。如果没有增长，就不是创业公司', body:'创业公司本质上是一家被设计为快速增长的公司。唯一不可或缺的条件是增长。**如果有一个数字是每个创始人都应该始终知道的，那就是公司的增长率。**每周5%的增长率意味着年增长12.6倍，10%意味着142倍。增长率的微小差异会产生性质截然不同的结果。', tags:['增长','指标','创业定义'], source:{title:'Startup = Growth',url:'https://paulgraham.com/growth.html',year:2012}},
+    { id:'pg_genius_01', thesis:'天才的秘诀：对有意义的事物抱有无私的痴迷', body:'除了天赋和决心，做伟大工作还需要第三要素：对某个主题的痴迷兴趣。**如果必须用一句话概括天才的配方，那就是：对有意义的事物抱有无私的痴迷。**天才发现隐藏路径，不是因为这些路径看起来有希望，而是因为他们情不自禁。', tags:['创始人特质','激情','工作'], source:{title:'The Bus Ticket Theory of Genius',url:'https://paulgraham.com/genius.html',year:2019}},
+  ],
+
+  a16z: [
+    { id:'a16z_top100_01', thesis:'ChatGPT周活8-9亿称王，但少于10%的用户会用第二个AI产品', body:'在通用AI助手领域，市场呈现"赢家通吃大部分"的局面。ChatGPT的日活/月活比为36%，几乎是Gemini（21%）的两倍。**仅9%的消费者同时订阅了ChatGPT、Gemini、Claude和Cursor中的多项服务。**这意味着通用聊天机器人赛道已被巨头锁定。', tags:['AI市场','竞争格局','用户数据'], source:{title:'State of Consumer AI 2025',url:'https://a16z.com/state-of-consumer-ai-2025-product-hits-misses-and-whats-next/',year:2025}},
+    { id:'a16z_top100_02', thesis:'AI正在从"目的地"变成"空气"——传统应用靠AI功能杀回榜单', body:'CapCut和Notion这些"传统应用"靠AI功能杀回Top 100榜单。这意味着AI不一定要从零开始——给现有产品加AI功能也是可行路径。Web端40%的公司是新面孔，说明市场仍在快速洗牌。', tags:['AI趋势','产品策略','竞争'], source:{title:'Top 100 Gen AI Consumer Apps',url:'https://a16z.com/100-gen-ai-apps/',year:2024}},
+    { id:'a16z_top100_03', thesis:'AI伴侣崛起——Character.AI用户日均使用2小时', body:'AI陪伴已成为生成式AI的主流用例。网络端从6个月前的2家增加到8家。Character.AI用户平均每天使用2小时，月均会话298次。有趣的是，8家伴侣产品中6家标榜"无审查"，75%流量来自移动网络。', tags:['AI伴侣','用户粘性','社交'], source:{title:'Top 100 Gen AI Consumer Apps',url:'https://a16z.com/100-gen-ai-apps/',year:2024}},
+    { id:'a16z_state_01', thesis:'Google Gemini正在猛追——付费增长率300%超过ChatGPT', body:'ChatGPT桌面用户同比增长23%，而Gemini高达155%。Gemini Pro订阅同比增长近300%，超过了ChatGPT的付费增长速度。新的图像模型Nano Banana是推动增长的主要动力——发布首周生成2亿张图片，为Gemini带来1000万新用户。', tags:['AI市场','竞争','增长数据'], source:{title:'State of Consumer AI 2025',url:'https://a16z.com/state-of-consumer-ai-2025-product-hits-misses-and-whats-next/',year:2025}},
+    { id:'a16z_state_02', thesis:'初创公司的机会在巨头的盲区——专注的有观点的消费者界面', body:'大公司忙于构建通用助手和核心模型，缺乏资源和直觉去创新核心能力之外的体验。**初创公司通过构建专注的、有观点的界面取得了成功**——Replit、Gamma、Character AI、Suno、ElevenLabs等。这些产品提供了比模型公司本身更强大的"超能力"。', tags:['创业机会','产品策略','AI'], source:{title:'State of Consumer AI 2025',url:'https://a16z.com/state-of-consumer-ai-2025-product-hits-misses-and-whats-next/',year:2025}},
+    { id:'a16z_spend_01', thesis:'AI创业公司实际花钱的地方：60%横向应用，创意工具是最大类别', body:'基于Mercury 20万客户的交易数据分析：前50名AI应用中60%是横向应用（任何人都能用），40%是垂直应用。**创意工具是最大的单个类别**——从Freepik到ElevenLabs到Midjourney。创意工具已从特定部门转变为"横向"技能。', tags:['AI支出','市场数据','创意工具'], source:{title:'The AI Application Spending Report',url:'https://a16z.com/the-ai-application-spending-report-where-startup-dollars-really-go/',year:2025}},
+    { id:'a16z_spend_02', thesis:'"氛围编程"已真正进入企业——Replit企业端收入是Lovable的15倍', body:'编程工具在企业端表现强劲。Replit在支出榜排第3（仅次于OpenAI和Anthropic），收入约是Lovable的15倍。因为Replit提供企业级全功能应用开发，而不仅是UI生成。**近70%的上榜公司无需企业许可证即可被个人采用带入团队。**', tags:['编程工具','企业AI','产品策略'], source:{title:'The AI Application Spending Report',url:'https://a16z.com/the-ai-application-spending-report-where-startup-dollars-really-go/',year:2025}},
+    { id:'a16z_spend_03', thesis:'消费级AI产品正被"拉入"企业环境——自下而上的渗透', body:'许多AI工具最初以个人产品为主，现已发展为团队/企业功能。流量≠收入——只有40%的高流量AI产品能成功变现。**91%的用户只愿意为一个AI产品付费。**这意味着你不仅要赢得用户，还要赢得用户唯一的付费名额。', tags:['变现','企业市场','定价'], source:{title:'State of Consumer AI 2025',url:'https://a16z.com/state-of-consumer-ai-2025-product-hits-misses-and-whats-next/',year:2025}},
+    { id:'a16z_native_01', thesis:'AI-native vs AI-enabled：两条路径的竞争态势完全不同', body:'AI-native产品以AI为核心，没有AI就没有产品；AI-enabled是已有产品加上AI功能。两种路径都有成功案例，但AI-native需要突破ChatGPT的重力场，AI-enabled需要找到足够大的存量市场。**代理式AI（Agent）是增长最快的品类——让AI"替用户做事"比"帮用户想事"商业价值大得多。**', tags:['产品定位','AI策略','Agent'], source:{title:'Top 100 Gen AI Consumer Apps',url:'https://a16z.com/100-gen-ai-apps/',year:2024}},
+    { id:'a16z_vertical_01', thesis:'垂直领域AI应用是最大创业机会——通用市场已被巨头锁定', body:'通用聊天机器人市场已被巨头锁定。从投资角度关注三个指标：这个市场的TAM有多大？单位经济模型是什么？有没有数据飞轮——用户越多产品越好？**从投资组合看，最终胜出的公司往往不是技术最强的，而是最懂用户的。**', tags:['垂直市场','投资','竞争'], source:{title:'Top 100 Gen AI Consumer Apps',url:'https://a16z.com/100-gen-ai-apps/',year:2024}},
+  ],
+
+  semi: [
+    { id:'semi_cost_01', thesis:'推理成本2年降10倍——之前不可行的AI功能现在可以商业化了', body:'2026年的推理成本比2024年下降了10倍以上。之前"太贵而无法商业化"的AI功能现在变得可行。但你需要算清楚单次请求成本：用GPT-5.5约$0.015/请求，Claude Opus 4.7约$0.022/请求，开源自部署约$0.003/请求。**如果技术成本让你亏损，市场再大也没用。**', tags:['推理成本','技术可行性','定价'], source:{title:'The Inference Kingdom Expands (GTC 2026)',url:'https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands',year:2026}},
+    { id:'semi_cost_02', thesis:'关注"任务完成成本"而不是token单价', body:'Opus 4.7新分词器变相涨价35%。但关注token单价是错误的思维方式——应该关注**任务完成成本**。有时候贵2倍的模型总成本反而更低，因为它一次就能做对。建议用混合架构：简单请求用开源小模型（成本低10倍），复杂请求路由到GPT-5.5/Opus。', tags:['成本优化','技术架构','模型选择'], source:{title:'The Coding Assistant Breakdown',url:'https://newsletter.semianalysis.com/p/the-coding-assistant-breakdown-more',year:2026}},
+    { id:'semi_bench_01', thesis:'不要盲信基准测试——厂商选择性发布有利数据', body:'我们的评测数据显示，厂商选择性发布有利数据，SWE-bench等测试集存在数据污染。**基准测试说的和真实场景完全是两回事。**必须在你自己的真实场景上做评测。GPT-5.5擅长精确推理和Bug修复，Opus 4.7擅长意图理解和开放式规划，选择取决于你的具体场景。', tags:['评测','模型选择','技术判断'], source:{title:'The Coding Assistant Breakdown',url:'https://newsletter.semianalysis.com/p/the-coding-assistant-breakdown-more',year:2026}},
+    { id:'semi_model_01', thesis:'GPT-5.5和Opus 4.7各有优劣——工程师倾向混合使用', body:'实际工作流中，工程师倾向于用Claude做规划/搭脚手架，用Codex修Bug和做细节。这种"分工"模式说明单一模型无法满足所有需求。**你的产品如果强依赖某个模型的特定能力，需要考虑模型切换的灵活性。**', tags:['模型选择','开发工具','技术架构'], source:{title:'The Coding Assistant Breakdown',url:'https://newsletter.semianalysis.com/p/the-coding-assistant-breakdown-more',year:2026}},
+    { id:'semi_infra_01', thesis:'芯片架构决定了下一代AI产品的成本和能力边界', body:'从芯片到基础设施到模型到应用的全栈分析表明：HBM4和CPO等新技术将进一步降低推理成本。但硬件约束仍然是产品创新的边界——**你的产品设计不能超越当前硬件能提供的能力天花板**。延迟预算很关键，低于2秒用户才不会流失。', tags:['硬件','基础设施','技术边界'], source:{title:'ISSCC 2026: HBM4 & CPO',url:'https://newsletter.semianalysis.com/p/isscc-2026-nvidia-and-broadcom-cpo',year:2026}},
+    { id:'semi_arch_01', thesis:'混合架构是2026年最经济的做法', body:'技术栈的选择会决定产品命运。建议混合架构：文本理解和生成用主流模型，复杂推理用GPT-5.5，多模态考虑Gemini或Claude，实时交互需要关注延迟预算。**简单请求路由到开源小模型（成本低10倍），复杂请求路由到顶级模型，这是2026年最经济的做法。**', tags:['技术架构','成本优化','产品开发'], source:{title:'The Coding Assistant Breakdown',url:'https://newsletter.semianalysis.com/p/the-coding-assistant-breakdown-more',year:2026}},
+    { id:'semi_supply_01', thesis:'供应链视角看AI——训练成本vs推理成本的变化趋势', body:'每一代硬件升级会释放新的产品可能性。训练成本持续攀升（GPT-5级别训练可能花费数亿美元），但推理成本在快速下降。**这种剪刀差决定了哪些产品可以出现**——当推理足够便宜时，之前经济上不可行的实时AI功能就变得可行了。', tags:['供应链','成本趋势','AI基础设施'], source:{title:'GTC 2026 — Inference Kingdom',url:'https://newsletter.semianalysis.com/p/nvidia-the-inference-kingdom-expands',year:2026}},
+  ],
+
+  pl: [
+    { id:'pl_opinionated_01', thesis:'杀手级产品是有主见的——故意增加限制反而更好', body:'Superhuman限制邀请、Notion坚持block-based编辑、Linear拒绝做看板视图——这些"限制"反而成就了它们。**你的产品有没有自己的"主见"？**你需要做一个决定：你愿意为了产品的主见放弃哪些用户？如果答案是"都不想放弃"，那这个产品大概率会变成一个平庸的什么都做的工具。', tags:['产品设计','差异化','用户体验'], source:{title:'Opinionated Products',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_redesign_01', thesis:'大型redesign通常会失败——渐进式迭代才是正道', body:'大型redesign通常失败，因为它们是为了内部政治而不是用户需求。不要试图在一个版本中塞入太多新东西。**先做一个极简版本，快速上线，然后根据用户行为迭代。**伟大的事物几乎总是通过迭代版本演变而来的。', tags:['产品开发','迭代','设计'], source:{title:'Why redesigns fail',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_firephone_01', thesis:'追逐市场vs解决问题——Amazon Fire Phone vs Alexa的教训', body:'亚马逊做Fire Phone失败了，但做Alexa成功了。区别在哪？Fire Phone是"追逐市场"（看到iPhone赚钱就想做手机），Alexa是"解决问题"（让智能家居有统一交互入口）。**你的idea是在追逐热潮，还是在解决一个真实的用户问题？**', tags:['产品战略','案例分析','失败教训'], source:{title:'Product case studies',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_tiktok_01', thesis:'TikTok成功靠的不是短视频——是推荐算法形成的上瘾循环', body:'TikTok成功的秘密不是"短视频"这个形式。真正的武器是推荐算法形成的上瘾循环：观看→算法学习→更精准的推荐→更长的观看时间。**你的产品有没有类似的正向反馈循环？用户用得越多，产品是否变得越好？**如果画不出一个自我强化的循环，留存会有问题。', tags:['增长飞轮','用户留存','算法'], source:{title:'TikTok case study',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_stripe_01', thesis:'Stripe的洞察：不是做"更好的支付"，而是做"更好的支付集成体验"', body:'Patrick Collison在2010年开始做支付处理——极其"无聊"的领域，已有PayPal、Braintree等巨头。但他发现了一个关键洞察：**开发者集成支付的体验烂透了**。他没有做"更好的支付"，而是做了"更好的支付集成体验"。切入角度决定成败。', tags:['产品定位','案例分析','开发者工具'], source:{title:'Product case studies',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_indie_01', thesis:'独立企业可以击败VC创业公司——盲目做大可能导致灭绝', body:'盲目做大不是唯一的路。很多时候，独立企业（bootstrapped company）可以击败VC创业公司。**不要问用户想要什么，观察他们做什么。**用户不会告诉你他们想要什么，但他们的行为会。关注用户的核心行为，而不是他们嘴上说的需求。', tags:['Bootstrap','用户研究','竞争策略'], source:{title:'How to pick a winning startup',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_numbers_01', thesis:'我们对数字的使用方式是错误的——数据需要被转化为故事', body:'枯燥的统计数据无法说服人。**关键是把数据转化为有说服力的故事。**不是说"用户增长了30%"，而是说"每3个新注册用户中就有1个是被朋友推荐来的"。同样的数据，不同的叙事方式，产生完全不同的决策影响力。', tags:['数据分析','沟通','产品管理'], source:{title:'We\'re using numbers wrong',url:'https://www.productlessons.xyz/',year:2024}},
+    { id:'pl_toy_01', thesis:'最好的产品通常一开始看起来像个玩具', body:'不要轻视那些看起来像"玩具"的项目。苹果、微软、早期的Facebook——最初都被人当成玩具。**当别人说"这只是个玩具"的时候，问自己：如果这个"玩具"的性能提升10倍会怎样？**如果答案是颠覆性的，那你可能发现了下一个大机会。', tags:['创新','早期判断','产品潜力'], source:{title:'Product Lessons insights',url:'https://www.productlessons.xyz/',year:2024}},
+  ],
+
+  boring: [
+    { id:'boring_pdf_01', thesis:'PDFMonkey——副业项目做PDF生成API，零融资年入44万美元', body:'PDFMonkey做的是根据模板自动生成PDF文档的API。作为副业项目启动，零融资，无投资者，纯订阅制年入44万美元。**这种"古老"的需求背后藏着巨大商机——需求永远不会消失，竞争注意力极低。**', tags:['API','SaaS','副业','PDF'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_geo_01', thesis:'Geocod.io——夫妻档做地址编码API，月入8万美元', body:'一对夫妻白手起家，为解决自身需求构建了地址地理编码API。按量付费+订阅制，每月收入8万美元。**最好的创业想法来自你自己遇到的问题。不需要VC，不需要大团队，一个具体的技术需求就够了。**', tags:['API','Bootstrap','夫妻创业'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_gymdesk_01', thesis:'Gymdesk——健身房管理软件，从290万美元收入到3250万美元被收购', body:'针对健身房和武术学校的"枯燥"管理软件。通过深度的细分领域SEO内容和社区增长，2023年收入达到290万美元，2024年以3250万美元出售。**在一个小到别人不愿做的市场里称王，然后等着被收购。**', tags:['SaaS','利基市场','退出'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_signwell_01', thesis:'Signwell——独立开发者做电子签名软件，年入500万美元', body:'面向小企业的电子签名软件，由一位长期独立开发者白手起家。通过SEO和订阅变现，年收入500万美元。**DocuSign太贵太复杂？那就做一个更简单更便宜的版本给小企业。这就是利基市场的力量。**', tags:['SaaS','独立开发','电子签名'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_subscribr_01', thesis:'Subscribr.ai——YouTube脚本写作工具，18个月从0到年入100万美元', body:'单人创始人白手起家，最初通过AppSumo获得traction。用AI帮YouTube创作者写脚本——很无聊的需求，但18个月内从0增长到年收入100万美元。**用AI让一个无聊的生意变得更好，可能比做"AI产品"更赚钱。**', tags:['AI工具','内容创作','独立开发'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_profit_01', thesis:'利润 > 估值，现金流 > 增长率——不需要改变世界', body:'**你不需要改变世界，你需要一个能每月付你账单的生意。**VC不投的领域可能恰恰是最好的创业方向。被聪明人忽视的领域竞争最少。反过来想：如果你今天有100个用户愿意每月付$50，你能给他们交付什么？从那个"100人×$50"的场景倒推产品设计。', tags:['商业模式','Bootstrap','利润'], source:{title:'BoringCashCow philosophy',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_old_01', thesis:'用新技术解决旧问题——AI驱动的PDF工具可能比通用聊天机器人更赚钱', body:'最好的生意往往是用新技术解决旧问题。PDF处理、截图API、发票工具、链接主页——这些"古老"的需求背后藏着巨大商机。**不要被"颠覆"的叙事绑架。AI最大的商业价值是让无聊的事情变得更自动化。**', tags:['AI商业化','旧问题新技术','利基市场'], source:{title:'BoringCashCow philosophy',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_karma_01', thesis:'Karma Bot——Slack表彰机器人，月入5万美元', body:'集成到Slack和Teams的团队认可/表彰工具，每月收入5万美元。**一个Slack插件就能月入5万？是的。关键是找到一个每天都会被使用的小需求，然后做到极致。**', tags:['SaaS','企业工具','Slack'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+    { id:'boring_windy_01', thesis:'Windy.app——户外天气应用，2500万用户月入70万美元', body:'专为户外运动设计的天气应用，小团队白手起家。全球2500万用户，月入约70万美元（订阅制）。**需求永远不会消失——人们永远需要看天气，你只需要用更好的方式满足特定人群。**', tags:['移动应用','订阅制','利基市场'], source:{title:'BoringCashCow Showcase',url:'https://boringcashcow.com',year:2026}},
+  ],
+
+  jenny: [
+    { id:'jenny_engine_01', thesis:'模型是引擎，产品是汽车——引擎市场整合，汽车市场蓝海', body:'Claude Code泄露的51万行代码证明：最成功的AI代理是围绕引擎精心打造的高性能汽车，而不是引擎本身的突破。**引擎市场正在整合为3-4家（Anthropic, OpenAI, Google），但汽车市场依然广阔。**这对垂直AI创业者是好消息——最难的技术栈现在是公开知识了。', tags:['AI架构','护城河','创业机会'], source:{title:'Inside the Claude Code Leak',url:'https://leonisnewsletter.substack.com/p/inside-the-claude-code-leak',year:2026}},
+    { id:'jenny_moat_01', thesis:'架构不再是护城河——垂直深度才是：领域数据、监管知识、客户信任', body:'泄露之前，初创公司可以声称"专有架构"作为护城河。现在，51万行生产代码公开后，业界发现这只是设计模式。**护城河从"专有架构"转移到"垂直深度"——领域数据、监管专业知识、工作流嵌入、客户信任。**这些是大厂不愿做也做不好的。The moat is in the mess.', tags:['护城河','垂直市场','竞争策略'], source:{title:'Inside the Claude Code Leak',url:'https://leonisnewsletter.substack.com/p/inside-the-claude-code-leak',year:2026}},
+    { id:'jenny_threshold_01', thesis:'Demo magic ≠ Product market fit——阈值效应让人误判市场', body:'OpenClaw/AutoGPT的阈值效应：底层模型突破关键阈值时，华丽的Demo先于价值捕获出现。演示环境是短期、受限、有隐性引导的；现实应用中任务持续时间长，中断不断，上下文退化。**真正赚钱的是那些"驯化魔法为可靠性"的产品。Winners reintroduce constraints without killing the magic.**', tags:['产品验证','AI陷阱','Demo'], source:{title:'OpenClaw and the AI Threshold Effect',url:'https://leonisnewsletter.substack.com/p/openclaw-aka-clawdbot-and-the-ai',year:2026}},
+    { id:'jenny_action_01', thesis:'AI正在引发知识工作的泰勒主义革命——行动系统是蓝海', body:'软件分三代：记录系统（存数据，如Salesforce）、交互系统（辅助沟通，如Slack）、**行动系统（代替组织做决策并执行）**。行动系统是蓝海——内置判断力、能自主决策。替换行动系统不仅是换软件，更是**组织性的失忆**，所以粘性极强。', tags:['AI趋势','企业软件','行动系统'], source:{title:'From Stopwatches to Systems of Action',url:'https://leonisnewsletter.substack.com/p/from-stopwatches-to-systems-of-action',year:2026}},
+    { id:'jenny_judgment_01', thesis:'判断力是AI时代最稀缺的资源——它有复利效应', body:'当智能商品化后，**判断力**成为新的稀缺资源。更聪明的模型总是可以被替代，但判断力会随时间积累。竞争的战场不再是"谁更聪明"，而是"谁的系统更有品位/判断力"。拥有判断力层的公司将变得不可或缺。', tags:['AI战略','稀缺性','护城河'], source:{title:'From Stopwatches to Systems of Action',url:'https://leonisnewsletter.substack.com/p/from-stopwatches-to-systems-of-action',year:2026}},
+    { id:'jenny_valuation_01', thesis:'AI公司估值公式：ARR × 倍数 × (1-D)，D是替代风险因子', body:'传统估值方法在AI领域失效。我们提出修正公式：Valuation = ARR × Multiple × (1-D)。**D是替代风险因子**——基础模型原生功能取代你的概率。如果OpenAI明天在ChatGPT里加了你这个功能，用户会不会全部流失？D越高，估值折扣越大。', tags:['估值','投资','替代风险'], source:{title:'Zero or Hero: AI Company Valuation',url:'https://leonisnewsletter.substack.com/p/zero-or-hero-a-technical-framework',year:2025}},
+    { id:'jenny_pricing_01', thesis:'从按token收费转向按结果收费——客户想买结果不想买软件', body:'基于Token的计费模式（惩罚迭代和推理）将崩塌，转向基于完成任务或交付价值的定价模式。**如果你做的是劳动替代，客户不想买软件——他们想买结果。**AI创业公司需要承担风险、按成功付费才能进入企业市场。', tags:['定价策略','商业模式','企业市场'], source:{title:'OpenClaw and the AI Threshold Effect',url:'https://leonisnewsletter.substack.com/p/openclaw-aka-clawdbot-and-the-ai',year:2026}},
+    { id:'jenny_mcp_01', thesis:'MCP时代护城河在"混乱"中——水平连接器会被商品化', body:'标准化会将中间层价值挤干，只有垂直领域深度服务能存活。**不要卖"便利"——赢家必须锁定基础模型不愿触碰的现实世界复杂性**（如HIPAA、KYC/AML、法律特权）。就像Stripe的护城河不在API而在PCI-DSS合规一样。通用MCP连接器会被云提供商捆绑销售。', tags:['MCP','护城河','垂直深度'], source:{title:'MCPs: Value Creation, Capture, and Destruction',url:'https://leonisnewsletter.substack.com/p/mcps-value-creation-capture-and-destructionlesso',year:2025}},
+    { id:'jenny_narrative_01', thesis:'叙事总是滞后于现实12-24个月——不要为今年的叙事做产品', body:'**叙事总是滞后于现实12-24个月。**不要为了今年的叙事做产品，为2027-2028的现实做准备。市场共识通常是错误的或迟到的。逆向思考，关注"谁最终赚了钱"而不是"谁获得了关注"。', tags:['投资策略','市场判断','长期思维'], source:{title:'Our Predictions for 2026',url:'https://leonisnewsletter.substack.com/p/our-predictions-for-2026',year:2026}},
+    { id:'jenny_paradox_01', thesis:'自我淘汰悖论——优秀用户越多，系统越快学会替代他们', body:'行动系统中存在一个悖论：越是优秀的知识工作者，越是完美的训练信号，加速了自己被系统替代。**你的用户越优秀地使用你的产品，提供的训练数据越好，越是在训练出替代自己的系统。**这是商业上的好事（产品越来越智能），但你需要想清楚如何向用户传达价值。', tags:['AI影响','劳动力','商业模式'], source:{title:'From Stopwatches to Systems of Action',url:'https://leonisnewsletter.substack.com/p/from-stopwatches-to-systems-of-action',year:2026}},
+  ]
+};
+
+// ============================================================
+// 🎯 话题生成引擎 — 基于 INSIGHTS_DB 标签交集
+// ============================================================
+
+// 0) 标签归一化——将同义/近义标签合并为统一标签，提升交集命中率
+const TAG_NORMALIZE = {
+  '创业验证': '创业验证', '验证': '创业验证', 'MVP': '创业验证', '产品验证': '创业验证', '早期判断': '创业验证', '产品潜力': '创业验证',
+  '用户获取': '用户增长', '用户增长': '用户增长', '增长': '用户增长', '增长数据': '用户增长', '增长飞轮': '用户增长',
+  '创业想法': '创业想法', '问题发现': '创业想法', '创业机会': '创业想法', '旧问题新技术': '创业想法',
+  '需求验证': '需求验证', '需求分析': '需求验证', '用户研究': '需求验证',
+  '市场策略': '市场策略', '垂直市场': '市场策略', '利基市场': '市场策略', '垂直深度': '市场策略',
+  '产品策略': '产品策略', '产品定位': '产品策略', '产品战略': '产品策略', '产品设计': '产品策略', '产品管理': '产品策略', '差异化': '产品策略',
+  '竞争': '竞争策略', '竞争策略': '竞争策略', '竞争格局': '竞争策略', '护城河': '竞争策略',
+  'AI': 'AI趋势', 'AI趋势': 'AI趋势', 'AI市场': 'AI趋势', 'AI策略': 'AI趋势', 'AI战略': 'AI趋势', 'AI影响': 'AI趋势',
+  'AI架构': 'AI技术', 'AI基础设施': 'AI技术', '技术架构': 'AI技术', '技术可行性': 'AI技术', '技术边界': 'AI技术', '技术判断': 'AI技术',
+  '商业模式': '商业模式', '变现': '商业模式', 'SaaS': '商业模式', '订阅制': '商业模式', 'AI商业化': '商业模式',
+  '投资': '投资', '投资策略': '投资', '估值': '投资', '市场判断': '投资',
+  '定价': '定价策略', '定价策略': '定价策略', '成本优化': '定价策略', '推理成本': '定价策略', '成本趋势': '定价策略',
+  '产品开发': '产品开发', '迭代': '产品开发', '开发工具': '产品开发', '开发者工具': '产品开发',
+  '企业市场': '企业市场', '企业AI': '企业市场', '企业软件': '企业市场', '企业工具': '企业市场',
+  '用户体验': '用户体验', '用户留存': '用户体验', '用户粘性': '用户体验', '设计': '用户体验',
+  '创新': '创新', '前瞻性': '创新', '方法论': '创新',
+  'Agent': 'Agent', 'MCP': 'Agent', '行动系统': 'Agent',
+  'Bootstrap': '独立创业', '独立开发': '独立创业', '副业': '独立创业', '利润': '独立创业',
+  '案例分析': '案例分析', '失败教训': '案例分析',
+  '早期阶段': '早期阶段', '创业': '早期阶段', '创始人': '早期阶段', '创始人特质': '早期阶段',
+};
+function normalizeTag(tag) { return TAG_NORMALIZE[tag] || tag; }
+
+// 1) 扫描所有观点，建立 normalizedTag → {personaId: [insights]} 的倒排索引
+function buildTagIndex() {
+  const index = {}; // normalizedTag → { pg: [ins], a16z: [ins], ... }
+  for (const [pid, insights] of Object.entries(INSIGHTS_DB)) {
+    for (const ins of insights) {
+      // 用 Set 防止同一条 insight 的多个原始 tag 归一化后重复
+      const normalizedTags = new Set(ins.tags.map(normalizeTag));
+      for (const tag of normalizedTags) {
+        if (!index[tag]) index[tag] = {};
+        if (!index[tag][pid]) index[tag][pid] = [];
+        index[tag][pid].push(ins);
+      }
+    }
+  }
+  return index;
+}
+
+// 2) 找到至少 minSpeakers 位大佬都有观点的标签
+function findSharedTopics(minSpeakers = 4) {
+  const index = buildTagIndex();
+  const topics = [];
+  for (const [tag, personaMap] of Object.entries(index)) {
+    const speakers = Object.keys(personaMap);
+    if (speakers.length >= minSpeakers) {
+      // 计算该话题下的总观点数
+      const totalInsights = Object.values(personaMap).reduce((sum, arr) => sum + arr.length, 0);
+      topics.push({
+        tag,
+        speakers,
+        speakerCount: speakers.length,
+        totalInsights,
+        personaInsights: personaMap // { pg: [ins1, ins2], a16z: [ins3], ... }
+      });
+    }
+  }
+  // 按参与人数降序，同人数按观点数降序
+  topics.sort((a, b) => b.speakerCount - a.speakerCount || b.totalInsights - a.totalInsights);
+  return topics;
+}
+
+// 3) 将标签转化为人类可读的讨论问题
+const TAG_TO_QUESTION = {
+  '创业想法': '💡 好的创业想法从哪里来？怎么区分真需求和伪需求？',
+  '创业验证': '🧪 如何验证一个创业想法是否可行？MVP该怎么做？',
+  '用户增长': '📈 创业公司的增长引擎是什么？如何获取早期用户并启动飞轮？',
+  '早期阶段': '🌱 创业公司早期最应该做什么？创始人该具备什么特质？',
+  '产品策略': '🎮 AI产品应该怎么定位和设计才能脱颖而出？',
+  '竞争策略': '⚔️ 如何在巨头和众多竞争者中建立护城河？',
+  'AI趋势': '🤖 AI行业的下一个大趋势是什么？机会和陷阱在哪里？',
+  'AI技术': '🏗️ AI产品的技术架构应该怎么选？技术边界在哪里？',
+  '需求验证': '🔍 如何判断一个需求是真需求还是伪需求？',
+  '市场策略': '🎯 创业公司应该怎么选择和切入市场？垂直 vs 水平？',
+  '案例分析': '📖 历史上成功/失败的产品教训有哪些？',
+  '投资': '💰 投资人眼中的好项目长什么样？',
+  '定价策略': '💵 AI产品应该怎么定价？如何控制成本？',
+  '商业模式': '💼 什么样的商业模式最适合AI创业？怎么变现？',
+  '独立创业': '🏋️ 不融资能做成大事吗？独立开发者的生存法则',
+  '产品开发': '🛠️ 产品开发应该遵循什么节奏和原则？',
+  '企业市场': '🏢 AI产品怎么打进企业市场？',
+  '用户体验': '✨ 什么样的用户体验能让产品留住用户？',
+  '创新': '💡 真正的创新是什么样子的？如何做出伟大的工作？',
+  'Agent': '🤖 AI Agent真的是下一个大趋势吗？',
+};
+
+// 话题去重：记录最近展示过的话题
+let _shownTopicTags = [];
+const TOPIC_DEDUP_WINDOW = 15;
+
+function generateTopicCards(count = 5) {
+  const allTopics = findSharedTopics(3); // 至少3位大佬有话说
+  if (allTopics.length < count) {
+    // fallback：合并 3人+ 和 2人+ 的话题
+    const more = findSharedTopics(2);
+    const existing = new Set(allTopics.map(t => t.tag));
+    for (const t of more) {
+      if (!existing.has(t.tag)) allTopics.push(t);
+    }
+  }
+
+  // 去重过滤
+  let available = allTopics.filter(t => !_shownTopicTags.includes(t.tag));
+  if (available.length < count) {
+    _shownTopicTags = [];
+    available = [...allTopics];
+  }
+
+  // 选取：优先高参与度的，加点随机性
+  const scored = available.map(t => ({
+    topic: t,
+    score: t.speakerCount * 3 + t.totalInsights + Math.random() * 5
+  }));
+  scored.sort((a, b) => b.score - a.score);
+
+  const picked = scored.slice(0, count).map(s => s.topic);
+
+  // 记录已展示
+  picked.forEach(t => {
+    _shownTopicTags.push(t.tag);
+    if (_shownTopicTags.length > TOPIC_DEDUP_WINDOW) _shownTopicTags.shift();
+  });
+
+  return picked;
+}
+
+// 获取话题的问题文本
+function getTopicQuestion(tag) {
+  return TAG_TO_QUESTION[tag] || '💬 关于「' + tag + '」，大佬们怎么看？';
+}
+
+// 为某个话题找到相关的后续话题（标签关联）
+function getFollowupTopics(currentTag, count = 3) {
+  const index = buildTagIndex();
+  const currentPersonas = Object.keys(index[currentTag] || {});
+  const allTopics = findSharedTopics(3);
+
+  // 找标签不同但参与角色有重叠的话题
+  const candidates = allTopics.filter(t =>
+    t.tag !== currentTag &&
+    !_shownTopicTags.includes(t.tag) &&
+    t.speakers.some(s => currentPersonas.includes(s))
+  );
+
+  // 按关联度排序
+  const scored = candidates.map(t => ({
+    topic: t,
+    score: t.speakers.filter(s => currentPersonas.includes(s)).length + Math.random() * 2
+  }));
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored.slice(0, count).map(s => s.topic);
+}
+
+// ============================================================
+// 🎭 回复组装引擎 — 数据驱动 + 去重 + 关键词路由
+// ============================================================
+
+// 去重状态（模块级变量，刷新重置）
+const _usedInsights = { pg:[], a16z:[], semi:[], pl:[], boring:[], jenny:[] };
+const DEDUP_WINDOW = 10; // 每个角色记住最近10条
+
+// 关键词 → 标签映射表
+const KEYWORD_TAG_MAP = {
+  // 行业
+  '法律':'法律','律师':'法律','合同':'法律','法规':'法律',
+  '医疗':'医疗','健康':'医疗','医院':'医疗','医生':'医疗','患者':'医疗',
+  '教育':'教育','学生':'教育','老师':'教育','学校':'教育','培训':'教育','学习':'学习',
+  '金融':'金融','银行':'金融','保险':'金融','投资':'投资','理财':'金融','财务':'金融',
+  '餐厅':'餐饮','餐饮':'餐饮','外卖':'餐饮','美食':'餐饮',
+  '电商':'电商','购物':'电商','零售':'电商',
+  '社交':'社交','社区':'社区','聊天':'社交',
+  // 产品类型
+  '工具':'工具','SaaS':'SaaS','saas':'SaaS','平台':'平台','API':'API','api':'API',
+  '插件':'插件','extension':'插件','Chrome':'插件',
+  '移动':'移动应用','app':'移动应用','APP':'移动应用',
+  '内容':'内容创作','创作':'内容创作','写作':'内容创作',
+  // AI相关
+  'AI':'AI','ai':'AI','人工智能':'AI','大模型':'AI','LLM':'AI','GPT':'AI','模型':'AI',
+  'Agent':'Agent','agent':'Agent','代理':'Agent','智能体':'Agent',
+  '自动化':'自动化','自动':'自动化',
+  // 商业
+  '变现':'变现','赚钱':'利润','付费':'定价','收费':'定价策略','订阅':'订阅制',
+  '融资':'投资','VC':'投资','创业':'创业','Bootstrap':'Bootstrap',
+  '增长':'增长','用户':'用户获取','留存':'用户留存',
+  '护城河':'护城河','竞争':'竞争','壁垒':'护城河',
+};
+
+function scanKeywords(text) {
+  const tags = new Set();
+  for (const [kw, tag] of Object.entries(KEYWORD_TAG_MAP)) {
+    if (text.includes(kw)) tags.add(tag);
+  }
+  return [...tags];
+}
+
+function scoreInsight(insight, matchTags) {
+  if (matchTags.length === 0) return 1; // 无关键词时全部等权
+  let score = 0;
+  for (const t of matchTags) {
+    if (insight.tags.some(it => it.includes(t) || t.includes(it))) score += 2;
+  }
+  return Math.max(score, 0.5); // 保底分
+}
+
+function pickInsights(personaId, idea, count = 2) {
+  const pool = INSIGHTS_DB[personaId];
+  if (!pool || pool.length === 0) return [];
+  const used = _usedInsights[personaId] || [];
+  const matchTags = scanKeywords(idea);
+
+  // 过滤已用观点（如果全都用过就重置）
+  let available = pool.filter(ins => !used.includes(ins.id));
+  if (available.length < count) {
+    _usedInsights[personaId] = [];
+    available = [...pool];
+  }
+
+  // 按相关性打分并排序
+  const scored = available.map(ins => ({ ins, score: scoreInsight(ins, matchTags) + Math.random() * 0.8 }));
+  scored.sort((a, b) => b.score - a.score);
+
+  // 选取
+  const picked = scored.slice(0, count).map(s => s.ins);
+
+  // 记录已用
+  picked.forEach(ins => {
+    _usedInsights[personaId].push(ins.id);
+    if (_usedInsights[personaId].length > DEDUP_WINDOW) _usedInsights[personaId].shift();
+  });
+
+  return picked;
+}
+
+function assembleReply(personaId, insights, idea, prev, mentions) {
+  const p = PERSONAS[personaId];
+  let reply = '';
+
+  // @提及前缀
+  const mentionPrefixes = {
+    pg: '被 cue 到了，那我来说说——\n\n',
+    a16z: '点名回答——\n\n',
+    semi: '技术角度来回答——\n\n',
+    pl: '让我来接这个话题——\n\n',
+    boring: '既然点名了，那我就不客气了——\n\n',
+    jenny: '好的，从投资分析角度回应——\n\n'
+  };
+  if (mentions && mentions.includes(personaId)) {
+    reply += mentionPrefixes[personaId] || '';
+  }
+
+  // 根据角色风格组装观点
+  const connectors = {
+    pg: ['说到这个方向——', '还有一点很重要——', '再补充一个视角——'],
+    a16z: ['从数据来看——', '另一个值得关注的趋势——', '从投资角度补充——'],
+    semi: ['从技术可行性角度——', '还有一个技术维度——', '关于技术选型补充——'],
+    pl: ['让我用一个案例来说明——', '从产品复盘的角度——', '类似的经验教训——'],
+    boring: ['说到赚钱这件事——', '再来一个更务实的角度——', '关于利润——'],
+    jenny: ['从投资分析的角度——', '还有一个关键维度——', '从价值捕获来看——']
+  };
+  const conn = connectors[personaId] || ['此外——', '另外——'];
+
+  insights.forEach((ins, i) => {
+    if (i > 0) reply += '\n\n' + conn[Math.min(i, conn.length - 1)] + '\n\n';
+    reply += ins.body;
+  });
+
+  // 回应前人观点（如果有前人发言）
+  if (prev.length > 0 && Math.random() > 0.4) {
+    const prevPerson = prev[Math.floor(Math.random() * prev.length)];
+    const reactions = {
+      pg: `\n\n${prevPerson.name}说的有道理，但我觉得在这个阶段更重要的是——先确认有人真的迫切需要这个东西，其他都是次要的。`,
+      a16z: `\n\n补充${prevPerson.name}的观点：从我们的投资数据看，最终胜出的公司往往不是技术最强的，而是最懂用户的。`,
+      semi: `\n\n${prevPerson.name}提到的点很重要，但别忘了——如果技术成本算不过来，其他都是空中楼阁。`,
+      pl: `\n\n同意${prevPerson.name}说的。补充一个产品视角：用户行为数据比用户说的话更值得信任。`,
+      boring: `\n\n${prevPerson.name}说的"市场规模"当然重要。但如果需要融资500万才能活到盈利，我建议重新想想方向。`,
+      jenny: `\n\n综合${prevPerson.name}的分析，核心问题是——护城河到底在哪里？如果只是套一层皮在大模型上面，这条路走不通。`
+    };
+    reply += reactions[personaId] || '';
+  }
+
+  return { text: reply, sources: insights.map(ins => ins.source) };
+}
+
+function generateResponse(personaId, userIdea, previousResponses, mentionedIds) {
+  const insights = pickInsights(personaId, userIdea, 2);
+  if (insights.length === 0) return { text: '这个想法很有意思，让我想想...', sources: [] };
+  return assembleReply(personaId, insights, userIdea, previousResponses, mentionedIds);
+}
+
+// ============================================================
+// 💬 聊天核心逻辑 + 群管理 + 历史记录 + @提及
+// ============================================================
+
+let chatMessages = [];
+let isProcessing = false;
+
+// --- 群组 + 会话数据 ---
+const STORAGE_KEY = 'idea-groupchat-sessions';
+const GROUPS_KEY = 'idea-groupchat-groups';
+let currentSessionId = null;
+let currentGroupId = null;
+let sessions = [];
+let groups = [];
+
+const GROUP_EMOJIS = ['💡','🚀','🔥','⚡','🎯','🧪','💎','🌟','🏗️','🤖','📊','🎨','🧬','🔮','🛠️','🌍'];
+
+function loadSessions() {
+  try { sessions = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { sessions = []; }
+}
+function saveSessions() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); } catch(e) {}
+}
+function loadGroups() {
+  try { groups = JSON.parse(localStorage.getItem(GROUPS_KEY) || '[]'); } catch { groups = []; }
+  // 如果没有群组，创建一个默认的
+  if (groups.length === 0) {
+    groups.push({
+      id: 'grp_default',
+      name: '全员讨论',
+      emoji: '💡',
+      members: ['pg','a16z','semi','pl','boring','jenny'],
+      createdAt: new Date().toISOString()
+    });
+    saveGroups();
+  }
+}
+function saveGroups() {
+  try { localStorage.setItem(GROUPS_KEY, JSON.stringify(groups)); } catch(e) {}
+}
+function getCurrentSession() { return sessions.find(s => s.id === currentSessionId); }
+function getCurrentGroup() { return groups.find(g => g.id === currentGroupId); }
+function getGroupSessions(groupId) { return sessions.filter(s => s.groupId === groupId).sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)); }
+
+function createNewSession(groupId) {
+  const gid = groupId || currentGroupId || 'grp_default';
+  const id = 'ses_' + Date.now() + '_' + Math.random().toString(36).substr(2,6);
+  const s = { id, groupId: gid, title: '新对话', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), messages: [] };
+  sessions.unshift(s);
+  currentSessionId = id;
+  currentGroupId = gid;
+  saveSessions();
+  // 激活群组成员
+  applyGroupMembers(gid);
+  renderGroupList();
+  renderHistory();
+  return s;
+}
+
+function applyGroupMembers(groupId) {
+  const g = groups.find(gr => gr.id === groupId);
+  if (!g) return;
+  Object.values(PERSONAS).forEach(p => { p.active = g.members.includes(p.id); });
+  initPersonaList();
+  updateOnlineCount();
+  updateChatHeader();
+}
+
+function updateChatHeader() {
+  const g = getCurrentGroup();
+  const headerH3 = document.querySelector('.chat-header h3');
+  if (g && headerH3) {
+    const count = g.members.length;
+    headerH3.innerHTML = '🎙️ ' + esc(g.name) + ' <span class="online-count" id="onlineCount">' + count + '人在线</span>';
+  }
+}
+
+function switchSession(id) {
+  const s = sessions.find(ss => ss.id === id);
+  if (s) {
+    currentSessionId = id;
+    currentGroupId = s.groupId;
+    applyGroupMembers(s.groupId);
+  }
+  renderHistory();
+  renderGroupList();
+  restoreSessionMessages();
+}
+
+function deleteSession(id, e) {
+  e.stopPropagation();
+  sessions = sessions.filter(s => s.id !== id);
+  saveSessions();
+  if (currentSessionId === id) {
+    const remaining = currentGroupId ? getGroupSessions(currentGroupId) : sessions;
+    if (remaining.length > 0) { currentSessionId = remaining[0].id; restoreSessionMessages(); }
+    else { currentSessionId = null; showWelcomeScreen(); }
+  }
+  renderHistory();
+  renderGroupList();
+  showToast('已删除对话记录');
+}
+
+function saveMsg(name, emoji, color, text, isUser) {
+  let s = getCurrentSession();
+  if (!s) s = createNewSession(currentGroupId);
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  s.messages.push({ type: isUser ? 'user' : 'persona', name, emoji, color, text, time, ts: now.toISOString() });
+  if (isUser && s.title === '新对话') s.title = text.substring(0,40) + (text.length > 40 ? '...' : '');
+  s.updatedAt = now.toISOString();
+  saveSessions();
+  renderHistory();
+  renderGroupList();
+}
+
+function restoreSessionMessages() {
+  const s = getCurrentSession();
+  const container = document.getElementById('messages');
+  container.innerHTML = '';
+  if (!s || s.messages.length === 0) { showWelcomeScreen(); return; }
+  s.messages.forEach(m => {
+    const isUser = m.type === 'user';
+    const el = document.createElement('div');
+    el.className = 'message' + (isUser ? ' user' : '');
+    el.style.animation = 'none';
+    el.innerHTML = buildMsgHTML(m.name, m.emoji, m.color, m.text, m.time, isUser);
+    container.appendChild(el);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+function showWelcomeScreen() {
+  const topics = generateTopicCards(5);
+  let topicHTML = '<div class="topic-grid">';
+  topics.forEach((t, i) => {
+    const question = getTopicQuestion(t.tag);
+    topicHTML += '<div class="topic-card" onclick="startRoundtable(\'' + t.tag.replace(/'/g, "\\'") + '\')">';
+    topicHTML += '<div class="topic-card-header"><div class="topic-card-num">' + (i + 1) + '</div>';
+    topicHTML += '<div class="topic-card-title">' + question + '</div></div>';
+    topicHTML += '<div class="topic-card-meta"><div class="topic-card-speakers">' + t.speakers.map(id => (PERSONAS[id]?.emoji || '')).join('') + '</div>';
+    topicHTML += '<div class="topic-card-count">' + t.speakerCount + '位大佬有话说 · ' + t.totalInsights + '条观点</div>';
+    topicHTML += '</div></div>';
+  });
+  topicHTML += '</div>';
+  topicHTML += '<button class="topic-refresh-btn" onclick="showWelcomeScreen()">🔄 换一批话题</button>';
+
+  document.getElementById('messages').innerHTML = '<div class="welcome" id="welcome"><h2>🎙️ 今日圆桌话题</h2><p>选择一个话题，6位大佬会从各自的视角展开讨论。<br>每个话题都基于大佬们<strong style="color:var(--accent)">真实发表过的观点</strong>进行碰撞。</p>' + topicHTML + '</div>';
+  // 隐藏后续话题栏
+  const fb = document.getElementById('followupBar');
+  if (fb) fb.classList.remove('show');
+}
+
+// --- 群组管理 ---
+function renderGroupList() {
+  const panel = document.getElementById('groupListPanel');
+  if (!panel) return;
+  let html = '<button class="group-new-btn" onclick="openGroupModal()">＋ 新建讨论群</button>';
+  if (groups.length === 0) {
+    html += '<div class="group-empty"><div style="font-size:36px;margin-bottom:12px;opacity:0.5;">💬</div><div>还没有讨论群<br>创建一个开始吧</div></div>';
+  } else {
+    groups.forEach(g => {
+      const gSessions = getGroupSessions(g.id);
+      const totalMsgs = gSessions.reduce((sum, s) => sum + s.messages.length, 0);
+      const isActive = currentGroupId === g.id;
+      const lastUpdate = gSessions.length > 0 ? new Date(gSessions[0].updatedAt) : new Date(g.createdAt);
+      const ds = (lastUpdate.getMonth()+1)+'/'+lastUpdate.getDate()+' '+lastUpdate.getHours().toString().padStart(2,'0')+':'+lastUpdate.getMinutes().toString().padStart(2,'0');
+      html += '<div class="group-item'+(isActive?' active':'')+'" onclick="enterGroup(\''+g.id+'\')">';
+      html += '<div class="group-item-header"><div class="group-item-emoji">'+g.emoji+'</div><div class="group-item-info"><div class="group-item-title">'+esc(g.name)+'</div><div class="group-item-meta"><span>'+gSessions.length+'条对话</span><span>'+totalMsgs+'条消息</span><span>'+ds+'</span></div></div></div>';
+      html += '<div class="group-item-members">'+g.members.map(id => '<span>'+(PERSONAS[id]?.emoji||'')+'</span>').join('')+'</div>';
+      html += '<div class="group-item-actions">';
+      html += '<button onclick="event.stopPropagation();openGroupModal(\''+g.id+'\')" title="编辑">✏️</button>';
+      if (g.id !== 'grp_default') html += '<button class="danger" onclick="event.stopPropagation();deleteGroup(\''+g.id+'\')" title="删除">🗑</button>';
+      html += '</div></div>';
+    });
+  }
+  panel.innerHTML = html;
+}
+
+function enterGroup(groupId) {
+  currentGroupId = groupId;
+  applyGroupMembers(groupId);
+  // 显示该群最近一条对话，或显示欢迎页
+  const gSessions = getGroupSessions(groupId);
+  if (gSessions.length > 0) {
+    currentSessionId = gSessions[0].id;
+    restoreSessionMessages();
+  } else {
+    currentSessionId = null;
+    showWelcomeScreen();
+  }
+  renderGroupList();
+  renderHistory();
+  switchTab('history');
+}
+
+function deleteGroup(groupId) {
+  if (!confirm('确定删除此群组？群内所有对话记录也将被删除。')) return;
+  groups = groups.filter(g => g.id !== groupId);
+  sessions = sessions.filter(s => s.groupId !== groupId);
+  saveGroups(); saveSessions();
+  if (currentGroupId === groupId) {
+    currentGroupId = groups.length > 0 ? groups[0].id : null;
+    currentSessionId = null;
+    if (currentGroupId) enterGroup(currentGroupId);
+    else showWelcomeScreen();
+  }
+  renderGroupList();
+  showToast('已删除群组');
+}
+
+// --- 群组 Modal ---
+let editingGroupId = null;
+let selectedGroupEmoji = '💡';
+let selectedGroupMembers = [];
+
+function openGroupModal(editId) {
+  editingGroupId = editId || null;
+  const modal = document.getElementById('groupModal');
+  const titleEl = document.getElementById('groupModalTitle');
+  const nameInput = document.getElementById('groupNameInput');
+
+  if (editId) {
+    const g = groups.find(gr => gr.id === editId);
+    if (!g) return;
+    titleEl.textContent = '✏️ 编辑群组';
+    nameInput.value = g.name;
+    selectedGroupEmoji = g.emoji;
+    selectedGroupMembers = [...g.members];
+  } else {
+    titleEl.textContent = '✨ 新建讨论群';
+    nameInput.value = '';
+    selectedGroupEmoji = '💡';
+    selectedGroupMembers = Object.keys(PERSONAS);
+  }
+
+  // 渲染 emoji 选择器
+  document.getElementById('emojiPicker').innerHTML = GROUP_EMOJIS.map(e =>
+    '<div class="emoji-pick'+(e===selectedGroupEmoji?' selected':'')+'" onclick="pickGroupEmoji(\''+e+'\')">'+e+'</div>'
+  ).join('');
+
+  // 渲染角色选择
+  document.getElementById('personaChecks').innerHTML = Object.values(PERSONAS).map(p =>
+    '<div class="persona-check'+(selectedGroupMembers.includes(p.id)?' checked':'')+'" onclick="toggleGroupMember(\''+p.id+'\')" style="color:'+p.color+'">'+p.emoji+' '+p.name+'</div>'
+  ).join('');
+
+  modal.classList.add('show');
+  nameInput.focus();
+}
+
+function closeGroupModal() { document.getElementById('groupModal').classList.remove('show'); }
+
+function pickGroupEmoji(e) {
+  selectedGroupEmoji = e;
+  document.querySelectorAll('#emojiPicker .emoji-pick').forEach(el => {
+    el.classList.toggle('selected', el.textContent === e);
+  });
+}
+
+function toggleGroupMember(id) {
+  if (selectedGroupMembers.includes(id)) selectedGroupMembers = selectedGroupMembers.filter(x => x !== id);
+  else selectedGroupMembers.push(id);
+  document.querySelectorAll('#personaChecks .persona-check').forEach(el => {
+    const pid = Object.values(PERSONAS).find(p => el.textContent.includes(p.name))?.id;
+    el.classList.toggle('checked', selectedGroupMembers.includes(pid));
+  });
+}
+
+function saveGroup() {
+  const name = document.getElementById('groupNameInput').value.trim();
+  if (!name) { showToast('请输入群名称'); return; }
+  if (selectedGroupMembers.length === 0) { showToast('请至少选择一位角色'); return; }
+
+  if (editingGroupId) {
+    const g = groups.find(gr => gr.id === editingGroupId);
+    if (g) {
+      g.name = name;
+      g.emoji = selectedGroupEmoji;
+      g.members = [...selectedGroupMembers];
+    }
+  } else {
+    const id = 'grp_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
+    groups.push({ id, name, emoji: selectedGroupEmoji, members: [...selectedGroupMembers], createdAt: new Date().toISOString() });
+    currentGroupId = id;
+    applyGroupMembers(id);
+  }
+
+  saveGroups();
+  renderGroupList();
+  closeGroupModal();
+  if (!editingGroupId && currentGroupId) {
+    enterGroup(currentGroupId);
+  } else if (editingGroupId === currentGroupId) {
+    applyGroupMembers(currentGroupId);
+  }
+  showToast(editingGroupId ? '群组已更新' : '群组已创建');
+}
+
+// --- 对话总结 ---
+function summarizeChat() {
+  const s = getCurrentSession();
+  if (!s || s.messages.length === 0) { showToast('当前没有对话可总结'); return; }
+  const g = getCurrentGroup();
+
+  let summary = '📊 对话总结\n';
+  summary += '═══════════════════════════\n\n';
+  summary += '🏷️ 群组：' + (g ? g.emoji + ' ' + g.name : '未知群组') + '\n';
+  summary += '📅 时间：' + new Date(s.createdAt).toLocaleString('zh-CN') + '\n';
+  summary += '💬 消息数：' + s.messages.length + '条\n\n';
+
+  // 提取用户的 idea
+  const userMsgs = s.messages.filter(m => m.type === 'user');
+  if (userMsgs.length > 0) {
+    summary += '💡 讨论主题\n───────────────────\n';
+    userMsgs.forEach(m => { summary += '• ' + m.text.replace(/@[\w\s]+\s/g, '').substring(0, 100) + '\n'; });
+    summary += '\n';
+  }
+
+  // 提取每位大佬的核心观点
+  const personaIds = [...new Set(s.messages.filter(m => m.type === 'persona').map(m => m.name))];
+  if (personaIds.length > 0) {
+    summary += '🧠 各方观点\n───────────────────\n';
+    personaIds.forEach(name => {
+      const pMsgs = s.messages.filter(m => m.name === name && m.type === 'persona');
+      summary += '\n**' + name + '：**\n';
+      pMsgs.forEach(m => {
+        // 提取加粗的核心观点
+        const boldPoints = m.text.match(/\*\*(.*?)\*\*/g);
+        if (boldPoints && boldPoints.length > 0) {
+          boldPoints.slice(0, 3).forEach(bp => {
+            summary += '  → ' + bp.replace(/\*\*/g, '') + '\n';
+          });
+        } else {
+          summary += '  → ' + m.text.substring(0, 80) + '...\n';
+        }
+      });
+    });
+    summary += '\n';
+  }
+
+  // 共识与分歧
+  summary += '📌 讨论要点\n───────────────────\n';
+  summary += '• 参与讨论：' + personaIds.join('、') + '\n';
+  summary += '• 总共 ' + s.messages.length + ' 条消息，其中用户 ' + userMsgs.length + ' 条\n';
+  summary += '• 讨论时间：' + new Date(s.messages[0].ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) + ' — ' + new Date(s.messages[s.messages.length-1].ts).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) + '\n';
+
+  document.getElementById('summaryContent').textContent = summary;
+  document.getElementById('summaryModal').classList.add('show');
+}
+
+function closeSummaryModal() { document.getElementById('summaryModal').classList.remove('show'); }
+
+function copySummary() {
+  const text = document.getElementById('summaryContent').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板')).catch(() => showToast('复制失败'));
+}
+
+function exportGroupChat() {
+  const s = getCurrentSession();
+  if (!s) return;
+  const g = getCurrentGroup();
+  let text = '💡 Idea 群聊讨论记录\n';
+  text += '群组：' + (g ? g.emoji + ' ' + g.name : '') + '\n';
+  text += '时间：' + new Date(s.createdAt).toLocaleString('zh-CN') + '\n';
+  text += '='.repeat(50) + '\n\n';
+  s.messages.forEach(m => {
+    text += '【' + m.name + '】 ' + m.time + '\n' + m.text + '\n\n---\n\n';
+  });
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (g ? g.name : 'discussion') + '-' + new Date().toISOString().slice(0, 10) + '.txt';
+  a.click();
+  showToast('已导出文件');
+}
+
+// --- 历史记录渲染 ---
+function renderHistory() {
+  const panel = document.getElementById('historyPanel');
+  if (!panel) return;
+  const gSessions = currentGroupId ? getGroupSessions(currentGroupId) : sessions;
+  const g = getCurrentGroup();
+
+  let html = '';
+  // 群内信息头
+  if (g) {
+    html += '<div class="session-group-title">' + g.emoji + ' ' + esc(g.name) + '</div>';
+    html += '<div class="session-group-members">' + g.members.map(id => '<span class="member-tag">' + (PERSONAS[id]?.emoji||'') + ' ' + (PERSONAS[id]?.name||id) + '</span>').join('') + '</div>';
+    html += '<div class="session-actions-bar">';
+    html += '<button class="primary" onclick="startNewChat()">＋ 新对话</button>';
+    html += '<button onclick="summarizeChat()">📊 总结</button>';
+    html += '<button onclick="exportChat()">💾 导出</button>';
+    html += '</div>';
+  } else {
+    html += '<button class="history-new-btn" onclick="startNewChat()">＋ 开始新对话</button>';
+  }
+
+  if (gSessions.length === 0) {
+    html += '<div class="history-empty"><div style="font-size:36px;margin-bottom:12px;opacity:0.5;">📝</div><div>还没有对话记录<br>发送第一条消息开始吧</div></div>';
+  } else {
+    gSessions.forEach(s => {
+      const d = new Date(s.updatedAt);
+      const ds = (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+      const preview = (s.messages.find(m => m.type === 'user') || {text:'空对话'}).text.substring(0,60);
+      html += '<div class="history-item'+(s.id===currentSessionId?' active':'')+'" onclick="switchSession(\''+s.id+'\')"><div class="history-item-title">'+esc(s.title)+'</div><div class="history-item-meta"><span>📅 '+ds+'</span><span>💬 '+s.messages.length+'条</span></div><div class="history-item-preview">'+esc(preview)+'</div><button class="history-delete" onclick="deleteSession(\''+s.id+'\',event)" title="删除">✕</button></div>';
+    });
+  }
+  panel.innerHTML = html;
+}
+
+function startNewChat() {
+  createNewSession(currentGroupId);
+  showWelcomeScreen();
+  clearMentions();
+}
+
+function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// --- Tab 切换 ---
+function switchTab(tab) {
+  document.getElementById('tabGroups').classList.toggle('active', tab === 'groups');
+  document.getElementById('tabPersonas').classList.toggle('active', tab === 'personas');
+  document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+  document.getElementById('panelGroups').classList.toggle('active', tab === 'groups');
+  document.getElementById('panelPersonas').classList.toggle('active', tab === 'personas');
+  document.getElementById('panelHistory').classList.toggle('active', tab === 'history');
+  if (tab === 'groups') renderGroupList();
+  if (tab === 'history') renderHistory();
+}
+
+// --- @提及功能 ---
+let mentionedPersonas = [];
+
+function handleInput(e) {
+  const ta = e.target;
+  const val = ta.value;
+  const cur = ta.selectionStart;
+  const before = val.substring(0, cur);
+  const atMatch = before.match(/@(\S*)$/);
+  if (atMatch) { showMentionDropdown(atMatch[1].toLowerCase()); }
+  else { hideMentionDropdown(); }
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+
+function showMentionDropdown(filter) {
+  const dd = document.getElementById('mentionDropdown');
+  const opts = document.getElementById('mentionOptions');
+  const active = Object.values(PERSONAS).filter(p => p.active);
+  const filtered = active.filter(p => !filter || p.name.toLowerCase().includes(filter) || p.id.includes(filter) || p.role.includes(filter));
+  if (filtered.length === 0) { hideMentionDropdown(); return; }
+  opts.innerHTML = filtered.map(p => {
+    const sel = mentionedPersonas.includes(p.id);
+    return '<div class="mention-option" onclick="selectMention(\''+p.id+'\')"><div class="m-avatar" style="background:'+p.avatar_bg+';color:'+p.color+'">'+p.emoji+'</div><div style="flex:1;min-width:0"><div class="m-name" style="color:'+p.color+'">'+p.name+'</div><div class="m-role">'+p.role+'</div></div>'+(sel?'<span class="m-check">✓</span>':'')+'</div>';
+  }).join('');
+  dd.classList.add('show');
+}
+
+function hideMentionDropdown() { document.getElementById('mentionDropdown').classList.remove('show'); }
+
+function selectMention(id) {
+  if (!mentionedPersonas.includes(id)) mentionedPersonas.push(id);
+  else mentionedPersonas = mentionedPersonas.filter(x => x !== id);
+  // Remove @text from input
+  const ta = document.getElementById('userInput');
+  const cur = ta.selectionStart;
+  const before = ta.value.substring(0, cur);
+  const after = ta.value.substring(cur);
+  const cleaned = before.replace(/@\S*$/, '');
+  ta.value = cleaned + after;
+  ta.focus();
+  hideMentionDropdown();
+  renderMentionBar();
+}
+
+function renderMentionBar() {
+  const bar = document.getElementById('mentionBar');
+  bar.innerHTML = mentionedPersonas.map(id => {
+    const p = PERSONAS[id];
+    return '<div class="mention-chip">'+p.emoji+' @'+p.name+'<button class="rm-mention" onclick="removeMention(\''+id+'\')">✕</button></div>';
+  }).join('');
+}
+
+function removeMention(id) {
+  mentionedPersonas = mentionedPersonas.filter(x => x !== id);
+  renderMentionBar();
+}
+
+function clearMentions() {
+  mentionedPersonas = [];
+  renderMentionBar();
+}
+
+// --- 初始化侧边栏 ---
+function initPersonaList() {
+  const list = document.getElementById('personaList');
+  list.innerHTML = '';
+  Object.values(PERSONAS).forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'persona-card ' + (p.active ? 'active' : '');
+    card.innerHTML = '<div class="persona-header"><div class="persona-avatar" style="background:'+p.avatar_bg+'; color:'+p.color+'">'+p.emoji+'</div><div><div class="persona-name" style="color:'+p.color+'">'+p.name+'</div><div class="persona-role">'+p.role+'</div></div></div><div class="persona-toggle '+(p.active?'on':'')+'" onclick="event.stopPropagation(); togglePersona(\''+p.id+'\', this)"></div><div class="persona-bio">'+p.shortBio+'</div><div class="persona-tags">'+p.mentalModels.slice(0,3).map(m => '<span>'+m.substring(0,15)+(m.length>15?'...':'')+'</span>').join('')+'</div>';
+    card.addEventListener('click', () => showPersonaDetail(p.id));
+    list.appendChild(card);
+  });
+  updateOnlineCount();
+}
+
+function togglePersona(id, el) {
+  PERSONAS[id].active = !PERSONAS[id].active;
+  el.classList.toggle('on');
+  el.closest('.persona-card').classList.toggle('active');
+  updateOnlineCount();
+}
+
+function updateOnlineCount() {
+  const count = Object.values(PERSONAS).filter(p => p.active).length;
+  document.getElementById('onlineCount').textContent = count + '人在线';
+}
+
+function showPersonaDetail(id) {
+  const p = PERSONAS[id];
+  const panel = document.getElementById('personaDetail');
+  const content = document.getElementById('detailContent');
+  content.innerHTML = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><div class="persona-avatar" style="background:'+p.avatar_bg+';color:'+p.color+';width:48px;height:48px;font-size:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'+p.emoji+'</div><div><h3 style="color:'+p.color+'">'+p.name+'</h3><div class="role">'+p.role+'</div></div></div><div class="section-title">🧠 核心思维模型</div>'+p.mentalModels.map(m=>'<div class="detail-text">• '+m+'</div>').join('')+'<div class="section-title">💬 说话风格</div><div class="detail-text"><strong>语调：</strong>'+p.style.tone+'</div><div class="detail-text"><strong>结构：</strong>'+p.style.structure+'</div>'+p.style.habits.map(h=>'<div class="detail-text" style="font-size:12px;">• '+h+'</div>').join('')+'<div class="section-title">📌 口头禅</div>'+p.style.catchphrases.map(c=>'<div class="quote-box">"'+c+'"</div>').join('')+'<div class="section-title">🎯 评估框架</div>'+p.evaluationFramework.map((q,i)=>'<div class="detail-text" style="font-size:12px;">'+(i+1)+'. '+q+'</div>').join('')+'<div class="section-title">📚 文章库</div><ul class="article-list">'+p.articles.map(a=>'<li><a href="'+a.url+'" target="_blank">'+a.title+'</a>'+(a.year?' <span style="color:var(--text-dim);font-size:10px;">'+a.year+'</span>':'')+'</li>').join('')+'</ul>';
+  panel.classList.add('show');
+}
+
+function closeDetail() { document.getElementById('personaDetail').classList.remove('show'); }
+
+function useExample(el) {
+  const text = el.textContent.replace('💡 ', '');
+  document.getElementById('userInput').value = text;
+  sendMessage();
+}
+
+function handleKeydown(e) {
+  // If mention dropdown is open, Escape closes it
+  const dd = document.getElementById('mentionDropdown');
+  if (dd.classList.contains('show')) {
+    if (e.key === 'Escape') { hideMentionDropdown(); e.preventDefault(); return; }
+  }
+  // Enter = 换行（默认行为），不自动发送。只能点击发送按钮发送。
+}
+
+function buildMsgHTML(name, emoji, color, text, time, isUser, sources) {
+  let sourceHTML = '';
+  if (sources && sources.length > 0) {
+    sourceHTML = '<div class="msg-source">📎 ' + sources.map(s => '<a href="'+s.url+'" target="_blank" title="'+s.title+(s.year?' ('+s.year+')':'')+'">'+s.title+'</a>').join(' · ') + '</div>';
+  }
+  return '<div class="msg-avatar" style="background:'+(isUser?'rgba(96,165,250,0.15)':'rgba('+hexToRgb(color)+',0.15)')+'; color:'+(isUser?'var(--user-color)':color)+'">'+emoji+'</div><div class="msg-content"><div class="msg-name" style="color:'+(isUser?'var(--user-color)':color)+'">'+name+' <span class="time">'+time+'</span></div><div class="msg-bubble">'+formatText(text)+sourceHTML+'</div></div>';
+}
+
+function addMessage(name, emoji, color, text, isUser = false, sources = null) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.style.display = 'none';
+  const container = document.getElementById('messages');
+  const msg = document.createElement('div');
+  msg.className = 'message' + (isUser ? ' user' : '');
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+  msg.innerHTML = buildMsgHTML(name, emoji, color, text, time, isUser, sources);
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+  // Save to session
+  saveMsg(name, emoji, color, text, isUser);
+}
+
+function showTyping(name, emoji, color) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.style.display = 'none';
+  const container = document.getElementById('messages');
+  const typing = document.createElement('div');
+  typing.className = 'message typing-msg';
+  typing.id = 'typing-' + name.replace(/\s/g, '');
+  typing.innerHTML = '<div class="msg-avatar" style="background:rgba('+hexToRgb(color)+',0.15); color:'+color+'">'+emoji+'</div><div class="msg-content"><div class="msg-name" style="color:'+color+'">'+name+'</div><div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span class="typing-name">正在思考...</span></div></div>';
+  container.appendChild(typing);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping(name) {
+  const el = document.getElementById('typing-' + name.replace(/\s/g, ''));
+  if (el) el.remove();
+}
+
+function formatText(text) {
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+}
+
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  return parseInt(hex.substr(0,2),16)+','+parseInt(hex.substr(2,2),16)+','+parseInt(hex.substr(4,2),16);
+}
+
+// ============================================================
+// 🎙️ 圆桌讨论引擎 — 话题驱动的有序发言
+// ============================================================
+
+async function startRoundtable(tag) {
+  if (isProcessing) return;
+  isProcessing = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  const question = getTopicQuestion(tag);
+  const index = buildTagIndex();
+  const topicData = index[tag] || {};
+
+  // 创建新 session
+  createNewSession(currentGroupId);
+
+  // 清除欢迎页
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.style.display = 'none';
+
+  // 显示话题作为系统消息
+  addMessage('圆桌话题', '🎙️', '#7c6aff', question, true);
+
+  // 获取当前群组的活跃角色中，在这个话题下有观点的大佬
+  const activePersonas = Object.values(PERSONAS).filter(p => p.active);
+  const speakers = activePersonas.filter(p => topicData[p.id] && topicData[p.id].length > 0);
+
+  if (speakers.length === 0) {
+    addMessage('系统', '⚠️', '#ff6b6b', '当前群组中没有大佬对这个话题有发言。请切换群组或选择其他话题。');
+    isProcessing = false;
+    document.getElementById('sendBtn').disabled = false;
+    return;
+  }
+
+  // 按"对这个话题的观点数"排序——观点多的先说（像主讲人）
+  speakers.sort((a, b) => (topicData[b.id]?.length || 0) - (topicData[a.id]?.length || 0));
+
+  const responses = [];
+  for (let i = 0; i < speakers.length; i++) {
+    const p = speakers[i];
+    const pInsights = topicData[p.id] || [];
+
+    showTyping(p.name, p.emoji, p.color);
+    await sleep(1200 + Math.random() * 1500);
+
+    // 选择 1-2 条该话题下的观点（优先未用过的）
+    const used = _usedInsights[p.id] || [];
+    let available = pInsights.filter(ins => !used.includes(ins.id));
+    if (available.length === 0) {
+      _usedInsights[p.id] = [];
+      available = [...pInsights];
+    }
+    // 加随机性
+    available.sort(() => Math.random() - 0.5);
+    const picked = available.slice(0, Math.min(2, available.length));
+
+    // 记录已用
+    picked.forEach(ins => {
+      _usedInsights[p.id].push(ins.id);
+      if (_usedInsights[p.id].length > DEDUP_WINDOW) _usedInsights[p.id].shift();
+    });
+
+    // 组装回复
+    let reply = '';
+
+    // 开场白（基于顺序）
+    const openers = {
+      pg: i === 0 ? '这个问题我有很多想说的——\n\n' : '补充一个创业实战的视角——\n\n',
+      a16z: i === 0 ? '让我先拉一下数据——\n\n' : '从数据来看——\n\n',
+      semi: i === 0 ? '从技术底层来分析——\n\n' : '技术角度补充一下——\n\n',
+      pl: i === 0 ? '让我用真实案例来说——\n\n' : '从产品复盘的角度——\n\n',
+      boring: i === 0 ? '好，我先泼盆冷水——\n\n' : '说到赚钱这件事——\n\n',
+      jenny: i === 0 ? '从投资分析的视角——\n\n' : '从价值捕获来看——\n\n'
+    };
+    reply += openers[p.id] || '';
+
+    // 添加观点
+    const connectors = ['', '\n\n还有一点——\n\n'];
+    picked.forEach((ins, j) => {
+      reply += (j > 0 ? connectors[1] : '') + ins.body;
+    });
+
+    // 回应前面的人（第2位之后）
+    if (i > 0 && responses.length > 0 && Math.random() > 0.3) {
+      const prevSpeaker = responses[Math.floor(Math.random() * responses.length)];
+      const boldMatch = prevSpeaker.text.match(/\*\*(.*?)\*\*/);
+      const prevPoint = boldMatch ? boldMatch[1] : '';
+
+      const reactionTemplates = {
+        pg: prevPoint ? `\n\n${prevSpeaker.name}提到"${prevPoint.substring(0, 30)}"——我同意，但我觉得更根本的问题是：有没有人**今天就在手动做**这件事？` : `\n\n${prevSpeaker.name}说的有道理，但别忘了最重要的一点：先确认有人真的需要这个东西。`,
+        a16z: `\n\n接着${prevSpeaker.name}的观点，从我们的投资数据来补充一个维度：`,
+        semi: `\n\n${prevSpeaker.name}的分析很好，但我要加一个技术约束的视角——`,
+        pl: `\n\n${prevSpeaker.name}说的让我想起了一个类似的产品案例——`,
+        boring: `\n\n${prevSpeaker.name}说的都对，但我想问一个更实际的问题：**这事能赚钱吗？**`,
+        jenny: `\n\n综合${prevSpeaker.name}的分析，我想从投资回报的角度追问一个关键问题——`
+      };
+      reply += reactionTemplates[p.id] || '';
+    }
+
+    removeTyping(p.name);
+    const sources = picked.map(ins => ins.source);
+    addMessage(p.name, p.emoji, p.color, reply, false, sources);
+    responses.push({ name: p.name, text: reply });
+
+    if (i < speakers.length - 1) await sleep(600 + Math.random() * 800);
+  }
+
+  // 显示后续话题推荐
+  const followups = getFollowupTopics(tag, 3);
+  const fb = document.getElementById('followupBar');
+  const ft = document.getElementById('followupTopics');
+  if (followups.length > 0 && fb && ft) {
+    ft.innerHTML = followups.map(t => {
+      const q = getTopicQuestion(t.tag);
+      return '<div class="followup-chip" onclick="startRoundtable(\'' + t.tag.replace(/'/g, "\\'") + '\')">' + q.substring(0, 30) + (q.length > 30 ? '...' : '') + '</div>';
+    }).join('');
+    fb.classList.add('show');
+  }
+
+  isProcessing = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+async function sendMessage() {
+  if (isProcessing) return;
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  isProcessing = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  // Capture current mentions and clear
+  const mentions = [...mentionedPersonas];
+  clearMentions();
+
+  // Show user message (include @tags in display)
+  const mentionPrefix = mentions.length > 0 ? mentions.map(id => '@'+PERSONAS[id].name).join(' ') + ' ' : '';
+  addMessage('你', '👤', '#60a5fa', mentionPrefix + text, true);
+
+  // Determine who responds
+  let respondents;
+  if (mentions.length > 0) {
+    // Only mentioned personas respond
+    respondents = mentions.map(id => PERSONAS[id]).filter(p => p);
+  } else {
+    // All active personas respond
+    respondents = Object.values(PERSONAS).filter(p => p.active);
+  }
+
+  if (respondents.length === 0) {
+    addMessage('系统', '⚠️', '#ff6b6b', '请至少激活一位大佬来参与讨论！');
+    isProcessing = false;
+    document.getElementById('sendBtn').disabled = false;
+    return;
+  }
+
+  // Shuffle order
+  const shuffled = respondents.sort(() => Math.random() - 0.5);
+
+  const responses = [];
+  for (let i = 0; i < shuffled.length; i++) {
+    const p = shuffled[i];
+    showTyping(p.name, p.emoji, p.color);
+    await sleep(1500 + Math.random() * 2000);
+    const result = generateResponse(p.id, text, responses, mentions.length > 0 ? mentions : null);
+    const response = typeof result === 'string' ? { text: result, sources: [] } : result;
+    responses.push({ name: p.name, text: response.text });
+    removeTyping(p.name);
+    addMessage(p.name, p.emoji, p.color, response.text, false, response.sources);
+    if (i < shuffled.length - 1) await sleep(800 + Math.random() * 1200);
+  }
+
+  // Cross-talk (only in group mode with 2+ respondents)
+  if (mentions.length === 0 && shuffled.length >= 2) {
+    await sleep(1500);
+    const reactor = shuffled[Math.floor(Math.random() * shuffled.length)];
+    const target = shuffled.find(p => p.id !== reactor.id);
+    if (target) {
+      showTyping(reactor.name, reactor.emoji, reactor.color);
+      await sleep(1200 + Math.random() * 1000);
+      removeTyping(reactor.name);
+      // 从数据库选一条观点做 cross-talk
+      const ctInsights = pickInsights(reactor.id, text, 1);
+      let ctText, ctSources = [];
+      if (ctInsights.length > 0) {
+        const ct = ctInsights[0];
+        const targetResp = responses.find(r => r.name === target.name);
+        const boldMatch = targetResp?.text.match(/\*\*(.*?)\*\*/);
+        const boldPoint = boldMatch ? boldMatch[1] : '核心论点';
+        const ctStyles = [
+          `补充 ${target.name} 的观点——关于"${boldPoint}"这一点我想加一个维度：\n\n${ct.body}`,
+          `跟 ${target.name} 唱个反调——分析很到位，但我从另一个角度看这个问题：\n\n${ct.body}`,
+          `总结一下大家的讨论，我再补充一个关键点：\n\n${ct.body}`
+        ];
+        ctText = ctStyles[Math.floor(Math.random() * ctStyles.length)];
+        ctSources = [ct.source];
+      } else {
+        ctText = '总结一下大家的讨论——我们从'+shuffled.length+'个不同角度分析了这个idea。我建议创始人**这周就做一件事**：找5个目标用户聊30分钟，验证今天讨论的核心假设。';
+      }
+      addMessage(reactor.name, reactor.emoji, reactor.color, ctText, false, ctSources);
+    }
+  }
+
+  isProcessing = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+function clearChat() {
+  // Clear current session messages
+  const s = getCurrentSession();
+  if (s) {
+    s.messages = [];
+    s.title = '新对话';
+    s.updatedAt = new Date().toISOString();
+    saveSessions();
+    renderHistory();
+  }
+  showWelcomeScreen();
+  chatMessages = [];
+  showToast('已清空当前对话');
+}
+
+function exportChat() {
+  exportGroupChat();
+}
+
+// Close mention dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.input-row')) hideMentionDropdown();
+});
+
+// Auto-resize textarea
+document.getElementById('userInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// --- 初始化 ---
+loadSessions();
+loadGroups();
+initPersonaList();
+
+// 迁移旧 session（没有 groupId 的）到默认群
+sessions.forEach(s => { if (!s.groupId) s.groupId = 'grp_default'; });
+saveSessions();
+
+// 设置默认群
+if (!currentGroupId && groups.length > 0) {
+  currentGroupId = groups[0].id;
+  applyGroupMembers(currentGroupId);
+}
+
+renderGroupList();
+renderHistory();
+
+// Restore last session or show welcome
+if (sessions.length > 0 && !currentSessionId) {
+  const lastSession = currentGroupId ? getGroupSessions(currentGroupId)[0] : sessions[0];
+  if (lastSession && lastSession.messages && lastSession.messages.length > 0) {
+    currentSessionId = lastSession.id;
+    currentGroupId = lastSession.groupId;
+    applyGroupMembers(currentGroupId);
+    restoreSessionMessages();
+  } else {
+    showWelcomeScreen();
+  }
+} else if (!currentSessionId) {
+  showWelcomeScreen();
+}
+</script>
+
+</body>
+</html>
